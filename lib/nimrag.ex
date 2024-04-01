@@ -1,18 +1,7 @@
 defmodule Nimrag do
-  @moduledoc """
-  Documentation for `Nimrag`.
-  """
-
-  @doc """
-  Hello world.
-
-  ## Examples
-
-      iex> Nimrag.hello()
-      :world
-
-  """
-  def hello do
-    :world
+  def profile(client) do
+    with {:ok, %{body: body, status: 200}} <- Req.get(client.auth_connectapi, url: "/userprofile-service/socialProfile") do
+      {:ok, body}
+    end
   end
 end

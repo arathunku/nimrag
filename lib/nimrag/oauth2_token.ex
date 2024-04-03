@@ -6,10 +6,12 @@ defmodule Nimrag.OAuth2Token do
     )a
 
   def expired?(%__MODULE__{expires_at: nil}), do: true
+
   def expired?(%__MODULE__{expires_at: expires_at}),
     do: DateTime.before?(expires_at, DateTime.utc_now())
 
   def refresh_token_expired?(%__MODULE__{refresh_token_expires_at: nil}), do: true
+
   def refresh_token_expired?(%__MODULE__{refresh_token_expires_at: expires_at}),
     do: DateTime.before?(expires_at, DateTime.utc_now())
 end
@@ -27,7 +29,9 @@ defimpl Inspect, for: Nimrag.OAuth2Token do
         [
           access_token: String.slice(access_token || "", 0, 5) <> "...",
           refresh_token: String.slice(refresh_token || "", 0, 5) <> "...",
+          expires_at: token.expires_at,
           expired?: OAuth2Token.expired?(token),
+          refresh_token_expires_at: token.refresh_token_expires_at,
           refresh_token_expired?: OAuth2Token.refresh_token_expired?(token)
         ],
         opts

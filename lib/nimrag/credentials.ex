@@ -1,10 +1,10 @@
 defmodule Nimrag.Credentials do
   require Logger
 
+  alias Nimrag.Client
   alias Nimrag.OAuth1Token
   alias Nimrag.OAuth2Token
 
-  @derive {Inspect, only: [:username]}
   defstruct username: nil, password: nil, get_mfa: {__MODULE__, :read_user_input_mfa, []}
 
   def new(username \\ nil, password \\ nil) do
@@ -35,6 +35,7 @@ defmodule Nimrag.Credentials do
   def read_oauth1_token do
     read_oauth_token(:oauth1_token, fn data ->
       {:ok, expires_at, 0} = DateTime.from_iso8601(data["expires_at"])
+
       %OAuth1Token{
         domain: data["domain"],
         expires_at: expires_at,
@@ -92,25 +93,27 @@ defmodule Nimrag.Credentials do
     end
   end
 
-  def write_fs_oauth_token(%OAuth1Token{} = token) do
-    write_fs_oauth_token(:oauth1_token, token)
-  end
+  def write_fs_oauth1_token(%Client{oauth1_token: token}), do: write_fs_oauth1_token(token)
 
-  def write_fs_oauth_token(%OAuth2Token{} = token) do
-    write_fs_oauth_token(:oauth2_token, token)
-  end
+  def write_fs_oauth1_token(%OAuth1Token{} = token),
+    do: write_fs_oauth_token(:oauth1_token, token)
+
+  def write_fs_oauth2_token(%Client{oauth2_token: token}), do: write_fs_oauth2_token(token)
+
+  def write_fs_oauth2_token(%OAuth2Token{} = token),
+    do: write_fs_oauth_token(:oauth2_token, token)
 
   defp write_fs_oauth_token(key, token) do
     path = Path.join(config_fs_path(), "#{key}.json")
-    data = Jason.encode!(token, pretty: true)
 
-    Logger.debug(["writing ", path])
-    File.mkdir_p!(Path.dirname(path))
-    File.touch!(path)
-    File.chmod!(path, 0o600)
-    File.write!(path, data)
-
-    token
+    with {:ok, data} = Jason.encode(token, pretty: true),
+         _ <- Logger.debug(fn -> ["writing ", path] end),
+         :ok <- File.mkdir_p!(Path.dirname(path)),
+         :ok <- File.touch!(path),
+         :ok <- File.chmod!(path, 0o600),
+         :ok <- File.write!(path, data) do
+      :ok
+    end
   end
 
   defp get_username, do: System.get_env("NIMRAG_USERNAME")
@@ -197,5 +200,28 @@ defmodule Nimrag.Credentials do
 
   defp write_memory_cache(key, data) do
     :persistent_term.put({__MODULE__, key}, data)
+  end
+end
+
+defimpl Inspect, for: Nimrag.Credentials do
+  alias Nimrag.Credentials
+  import Inspect.Algebra
+
+  def inspect(
+        %Credentials{username: username},
+        opts
+      ) do
+    details =
+      Inspect.List.inspect(
+        [
+          username:
+            (username |> String.split("@", trim: true) |> List.first() |> String.slice(0, 5)) <>
+              "...",
+          password: "*****"
+        ],
+        opts
+      )
+
+    concat(["#Nimrag.Credentials<", details, ">"])
   end
 end

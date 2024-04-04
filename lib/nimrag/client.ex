@@ -8,13 +8,24 @@ defmodule Nimrag.Client do
             oauth1_token: nil,
             oauth2_token: nil
 
-  require Logger
-
   alias Nimrag.OAuth1Token
   alias Nimrag.OAuth2Token
 
   @connectapi_user_agent "Mozilla/5.0 (Android 14; Mobile; rv:125.0) Gecko/125.0 Firefox/125.0"
 
+  @doc """
+
+  Adding proxy to all requests
+
+  client = Nimrag.Client.new(
+    req_options: [
+      connect_options: [
+        transport_opts: [cacertfile: Path.expand("~/.mitmproxy/mitmproxy-ca-cert.pem")],
+        proxy: {:http, "localhost", 8080, []}
+      ]
+    ]
+  )
+  """
   def new(config \\ []) when is_list(config) do
     {domain, config} = Keyword.pop(config, :domain, "garmin.com")
     {custom_req_options, config} = Keyword.pop(config, :req_options, [])
@@ -35,7 +46,6 @@ defmodule Nimrag.Client do
       oauth1_token: nil,
       oauth2_token: nil
     }
-    |> attach_req_auth()
   end
 
   def with_auth(%__MODULE__{} = client, {oauth1_token, oauth2_token}) do
@@ -52,49 +62,6 @@ defmodule Nimrag.Client do
   def put_oauth_token(%__MODULE__{} = client, %OAuth2Token{} = token) do
     client
     |> Map.put(:oauth2_token, token)
-    |> attach_req_auth()
-  end
-
-  defp attach_req_auth(%__MODULE__{} = client) do
-    client
-    |> Map.put(
-      :auth_connectapi,
-      client.connectapi
-      |> Req.Request.append_request_steps(
-        req_nimrag_oauth: &connectapi_auth(client.oauth2_token, "connectapi." <> client.domain, &1)
-      )
-    )
-    |> Map.put(
-      :auth_connect,
-      client.connect
-      |> Req.Request.append_request_steps(
-        req_nimrag_oauth: &connectapi_auth(client.oauth2_token, "connect." <> client.domain, &1)
-      )
-    )
-  end
-
-  defp connectapi_auth(nil, _, request) do
-    Logger.warning(
-      "Setup OAuth2 Token first with Nimrag.Auth.login_sso/2 or NimRag.Client.attach_auth/2"
-    )
-
-    {Req.Request.halt(request), :oauth2_missing}
-  end
-
-  defp connectapi_auth(
-         oauth2_token,
-         host,
-         %{url: %URI{scheme: "https", host: host, port: 443}} = request
-       ) do
-    if OAuth2Token.expired?(oauth2_token) do
-      {Req.Request.halt(request), :oauth2_token_expired}
-    else
-      Req.Request.put_header(request, "Authorization", "Bearer #{oauth2_token.access_token}")
-    end
-  end
-
-  defp connectapi_auth(_, _, request) do
-    {Req.Request.halt(request), :invalid_request}
   end
 end
 

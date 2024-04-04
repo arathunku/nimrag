@@ -1,17 +1,15 @@
 defmodule Nimrag do
+  alias Nimrag.Api
+
+  # TODO: wrap profile in struct
   def profile(client) do
-    with {:ok, %{body: body, status: 200}} <-
-           Req.get(client.auth_connectapi, url: "/userprofile-service/socialProfile") do
-      {:ok, body}
-    end
+    Api.get(client, url: "/userprofile-service/socialProfile")
   end
 
-  def steps_daily(client, date \\ Date.utc_today()) do
-    with {:ok, %{body: body, status: 200}} <-
-           Req.get(client.auth_connect,
-             url: "/usersummary-service/stats/steps/daily/2024-03-28/2024-04-03"
-           ) do
-      {:ok, body}
-    end
+  def steps_daily(client, start_date \\ Date.utc_today(), end_date \\ Date.utc_today()) do
+    Api.get(client,
+      url: "/usersummary-service/stats/steps/daily/:start_date/:end_date",
+      path_params: [start_date: Date.to_iso8601(start_date), end_date: Date.to_iso8601(end_date)]
+    )
   end
 end

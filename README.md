@@ -22,30 +22,21 @@ be found at <https://hexdocs.pm/nimrag>.
 ## Usage
 
 ```elixir
-opts = [
-  req_options: [
-    connect_options: [
-      transport_opts: [cacertfile: Path.expand("~/.mitmproxy/mitmproxy-ca-cert.pem")],
-      proxy: {:http, "localhost", 8080, []}
-    ]
-  ]
-]
+# If you're using it for the first time
+{:ok, client} = Nimrag.Auth.login_sso()
 
+# OPTIONAL: If you'd like to store OAuth tokens in ~/.config/nimrag
+:ok = Nimrag.Credentials.write_fs_oauth1_token(client)
+:ok = Nimrag.Credentials.write_fs_oauth2_token(client)
+
+# Restore previously cached OAuth tokens
 client = (
-  Nimrag.Client.new(opts)
+  Nimrag.Client.new()
   |> Nimrag.Client.with_auth({
     Nimrag.Credentials.read_oauth1_token!(),
     Nimrag.Credentials.read_oauth2_token!()
   })
 )
-
-# required if you don't have OAuth tokens stored anywhere yet
-credentials = Nimrag.Credentials.new() # see Nimrag.Credentials.new/1 for details how to provide username/password!
-{:ok, client} = Nimrag.Auth.login_sso(client, credentials)
-
-# OPTIONAL: If you'd like to store OAuth tokens in ~/.config/nimrag
-:ok = Nimrag.Credentials.write_fs_oauth1_token(client)
-:ok = Nimrag.Credentials.write_fs_oauth2_token(client)
 
 Nimrag.profile(client)
 

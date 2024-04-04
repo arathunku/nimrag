@@ -117,15 +117,42 @@ defmodule Nimrag.Credentials do
   end
 
   defp get_username, do: System.get_env("NIMRAG_USERNAME")
-  defp get_password, do: System.get_env("NIMRAG_PASSWORD")
+
+  defp get_password do
+    cond do
+      password = System.get_env("NIMRAG_PASSWORD") ->
+        password
+
+      password_file = System.get_env("NIMRAG_PASSWORD_FILE") ->
+        password_file
+        |> Path.expand()
+        |> File.read!()
+
+      password_cmd = System.get_env("NIMRAG_PASSWORD_COMMAND") ->
+        [cmd | args] = String.split(password_cmd, " ", trim: true)
+
+        case System.cmd(cmd, args) do
+          {output, 0} ->
+            output
+
+          _ ->
+            raise "Failed to execute password command: cmd=#{cmd} args=#{inspect(args)}"
+        end
+    end
+    |> String.trim()
+  end
 
   def get_mfa(%__MODULE__{get_mfa: {module, fun, args}}) do
     apply(module, fun, args)
   end
 
   def read_user_input_mfa do
-    code = IO.gets("Enter MFA code: ")
-    {:ok, String.trim(code)}
+    IO.gets("Enter MFA code: ")
+    |> String.trim()
+    |> case do
+      "" -> {:error, :invalid_mfa}
+      code -> {:ok, code}
+    end
   end
 
   defp read_fs_credentials do

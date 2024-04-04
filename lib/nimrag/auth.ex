@@ -15,6 +15,10 @@ defmodule Nimrag.Auth do
   # def login_web(client) do
   # end
 
+  def login_sso, do: login_sso(Client.new(), Credentials.new())
+  def login_sso(%Credentials{} = credentials), do: login_sso(Client.new(), credentials)
+  def login_sso(%Client{} = client), do: login_sso(client, Credentials.new())
+
   def login_sso(%Client{} = client, %Credentials{} = credentials) do
     with {:ok, sso} <- build_sso(client),
          {:ok, embed_response} <- embed_req(sso),
@@ -240,6 +244,7 @@ defmodule Nimrag.Auth do
       url: "/verifyMFA/loginEnterMfaCode",
       params: sso.signin_params
     )
+    |> check_response(:get_mfa)
   end
 
   defp embed_req(sso) do

@@ -1,6 +1,7 @@
 defmodule Nimrag.Api do
   alias Nimrag.Client
-  alias Nimrag.OAuth2Token
+  alias Nimrag.OAuth1Token
+  alias Nimrag.Auth
 
   require Logger
 
@@ -18,53 +19,74 @@ defmodule Nimrag.Api do
 
   def get(%Client{} = client, opts) do
     client
-    |> req()
-    |> Req.get(opts)
+    |> req(opts)
+    |> Req.get()
     |> case do
-      {:ok, %{status: 200} = resp} -> {:ok, resp, client}
-      {:error, response} -> {:error, response, client}
+      {:ok, %{status: 200} = resp} -> {:ok, resp, Req.Response.get_private(resp, :client)}
+      {:error, error} -> {:error, error}
     end
   end
 
-  def get(%Client{} = client, opts) do
-    client
-    |> req()
-    |> Req.get(opts)
-    |> case do
-      {:ok, %{status: 200} = resp} -> {:ok, resp, client}
-      {:error, response} -> {:error, response, client}
-    end
-  end
+  # def get(%Client{} = client, opts) do
+  #   client
+  #   |> req(opts)
+  #   |> Req.get()
+  #   |> case do
+  #     {:ok, %{status: 200} = resp} -> {:ok, resp, client}
+  #     {:error, response} -> {:error, response, client}
+  #   end
+  # end
 
-  defp req(%Client{} = client) do
+  defp req(%Client{} = client, opts) do
+    if client.oauth2_token == nil do
+      Logger.warning(
+        "Setup OAuth2 Token first with Nimrag.Auth.login_sso/2 or NimRag.Client.attach_auth/2"
+      )
+    end
+
     client.connectapi
+    |> Req.merge(opts)
+    |> Req.Request.put_private(:client, client)
     |> Req.Request.append_request_steps(
-      req_nimrag_oauth: &connectapi_auth(client.oauth2_token, "connectapi." <> client.domain, &1)
+      req_nimrag_rate_limit: &rate_limit(&1),
+      req_nimrag_oauth: &connectapi_auth("connectapi." <> client.domain, &1)
     )
   end
 
-  defp connectapi_auth(nil, _, request) do
-    Logger.warning(
-      "Setup OAuth2 Token first with Nimrag.Auth.login_sso/2 or NimRag.Client.attach_auth/2"
-    )
+  defp connectapi_auth(host, %{url: %URI{scheme: "https", host: host, port: 443}} = req) do
+    client = Req.Request.get_private(req, :client)
 
-    {Req.Request.halt(request), :oauth2_missing}
-  end
+    case Auth.maybe_refresh_oauth2_token(client) do
+      {:ok, client} ->
+        req
+        |> Req.Request.put_header("Authorization", "Bearer #{client.oauth2_token.access_token}")
+        |> Req.Request.append_response_steps(
+          req_nimrag_attach_client: fn {req, resp} ->
+            {req, Req.Response.put_private(resp, :client, client)}
+          end
+        )
 
-  # TODO: trigger maybe_refresh
-  defp connectapi_auth(
-         oauth2_token,
-         host,
-         %{url: %URI{scheme: "https", host: host, port: 443}} = request
-       ) do
-    if OAuth2Token.expired?(oauth2_token) do
-      {Req.Request.halt(request), :oauth2_token_expired}
-    else
-      Req.Request.put_header(request, "Authorization", "Bearer #{oauth2_token.access_token}")
+      {:error, _reason} ->
+        {Req.Request.halt(req), :oauth2_token_refresh_error}
     end
   end
 
-  defp connectapi_auth(_, _, request) do
-    {Req.Request.halt(request), :invalid_request}
+  defp connectapi_auth(_, req) do
+    {Req.Request.halt(req), :invalid_request_host}
+  end
+
+  defp rate_limit(req) do
+    %Client{oauth1_token: %OAuth1Token{oauth_token: oauth_token}, rate_limit: rate_limit} =
+      Req.Request.get_private(req, :client)
+
+    [scale_ms: scale_ms, limit: limit] = rate_limit
+
+    case Hammer.check_rate(:nimrag, "garmin.com:#{oauth_token}", scale_ms, limit) do
+      {:allow, _count} ->
+        req
+
+      {:deny, limit} ->
+        {Req.Request.halt(req), {:rate_limit, limit}}
+    end
   end
 end

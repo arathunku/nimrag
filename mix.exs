@@ -11,19 +11,21 @@ defmodule Nimrag.MixProject do
     ]
   end
 
-  # Run "mix help compile.app" to learn about applications.
   def application do
     [
+      mod: {Nimrag.Application, []},
       extra_applications: [:logger]
     ]
   end
 
-  # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
       {:req, "~> 0.4.14"},
       {:oauther, "~> 1.1"},
-      {:jason, "~> 1.4"}
+      {:jason, "~> 1.4"},
+      {:recase, "~> 0.7"},
+      {:schematic, "~> 0.1"},
+      {:hammer, "~> 6.1", runtime: false}
     ]
   end
 end

@@ -30,19 +30,13 @@ be found at <https://hexdocs.pm/nimrag>.
 :ok = Nimrag.Credentials.write_fs_oauth2_token(client)
 
 # Restore previously cached OAuth tokens
-client = (
-  Nimrag.Client.new()
-  |> Nimrag.Client.with_auth({
-    Nimrag.Credentials.read_oauth1_token!(),
-    Nimrag.Credentials.read_oauth2_token!()
-  })
-)
+client = Nimrag.Client.new() |> Nimrag.Client.with_auth(Nimrag.Credentials.read_oauth_tokens!())
 
 Nimrag.profile(client)
 
-# Refresh OAuth2 token, it's valid for only some time. 
+# Refresh OAuth2 token, it's valid for only some time.
 # OAuth1 token is valid for up to 1 year. After that username/password is required again.
 # TODO: get and return client
 {:ok, client} = Nimrag.Auth.refresh_oauth2_token(client)
-:ok = Nimrag.Credentials.write_fs_oauth1_token(client)
+:ok = Nimrag.Credentials.write_fs_oauth2_token(client)
 ```

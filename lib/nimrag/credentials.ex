@@ -18,6 +18,10 @@ defmodule Nimrag.Credentials do
     }
   end
 
+  def read_oauth_tokens! do
+    {read_oauth1_token!(), read_oauth2_token!()}
+  end
+
   def read_oauth1_token! do
     case read_oauth1_token() do
       {:ok, oauth1_token} -> oauth1_token

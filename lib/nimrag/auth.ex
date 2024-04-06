@@ -10,6 +10,8 @@ defmodule Nimrag.Auth do
   @oauth_consumer_key Base.url_decode64!("ZmMzZTk5ZDItMTE4Yy00NGI4LThhZTMtMDMzNzBkZGUyNGMw")
   @oauth_consumer_secret Base.url_decode64!("RTA4V0FSODk3V0V5MmtubjdhRkJydmVnVkFmMEFGZFdCQkY=")
   @mobile_user_agent "com.garmin.android.apps.connectmobile"
+  # API always refreshes expired tokens BEFORE making request, NOT on 401 errors
+  @short_expires_by_n_seconds 10
 
   # simulate web-like login flow without using secret key/secret extracted from mobile app
   # def login_web(client) do
@@ -83,7 +85,7 @@ defmodule Nimrag.Auth do
      }}
   end
 
-  def refresh_oauth2_token(%Client{} = client, opts \\ []) do
+  def maybe_refresh_oauth2_token(%Client{} = client, opts \\ []) do
     force = Keyword.get(opts, :force, false)
 
     if client.oauth2_token == nil || OAuth2Token.expired?(client.oauth2_token) || force do
@@ -139,8 +141,8 @@ defmodule Nimrag.Auth do
       "token_type" => token_type
     } = response.body
 
-    expires_at = DateTime.add(now, expires_in, :second)
-    refresh_token_expires_at = DateTime.add(now, refresh_token_expires_in, :second)
+    expires_at = DateTime.add(now, expires_in - @short_expires_by_n_seconds, :second)
+    refresh_token_expires_at = DateTime.add(now, refresh_token_expires_in - @short_expires_by_n_seconds, :second)
 
     {:ok,
      %OAuth2Token{

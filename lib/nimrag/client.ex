@@ -1,12 +1,24 @@
 defmodule Nimrag.Client do
+  @type t :: %__MODULE__{
+    connectapi: Req.t(),
+    domain: String.t(),
+    req_options: Keyword.t(),
+    oauth1_token: OAuth1Token.t() | nil,
+    oauth2_token: OAuth2Token.t() | nil,
+    rate_limit: [scale_ms: integer(), limit: integer()]
+  }
+
   defstruct connectapi: nil,
-            connect: nil,
             domain: "garmin.com",
             req_options: [],
-            auth_connectapi: nil,
-            auth_connect: nil,
             oauth1_token: nil,
-            oauth2_token: nil
+            oauth2_token: nil,
+            rate_limit: nil
+
+  # Options passed to Hammer, there are no official API limits so let's be
+  # good citizens! Page load on Garmin dashboard performs over 200 requests
+  # @default_rate_limit rate_limit: [scale_ms: 30_000, limit: 60]
+  @default_rate_limit [scale_ms: 30_000, limit: 2]
 
   alias Nimrag.OAuth1Token
   alias Nimrag.OAuth2Token
@@ -29,6 +41,7 @@ defmodule Nimrag.Client do
   def new(config \\ []) when is_list(config) do
     {domain, config} = Keyword.pop(config, :domain, "garmin.com")
     {custom_req_options, config} = Keyword.pop(config, :req_options, [])
+    {rate_limit, config} = Keyword.pop(config, :rate_limit, @default_rate_limit)
 
     if config != [] do
       raise "Unknown config key(s): #{inspect(config)}"
@@ -41,10 +54,10 @@ defmodule Nimrag.Client do
       req_options: req_opts,
       connectapi:
         [base_url: "https://connectapi.#{domain}"] |> Keyword.merge(req_opts) |> Req.new(),
-      connect: [base_url: "https://connect.#{domain}"] |> Keyword.merge(req_opts) |> Req.new(),
       domain: domain,
       oauth1_token: nil,
-      oauth2_token: nil
+      oauth2_token: nil,
+      rate_limit: rate_limit
     }
   end
 
@@ -77,8 +90,8 @@ defimpl Inspect, for: Nimrag.Client do
       Inspect.List.inspect(
         [
           domain: client.domain,
-          oauth1_token: client.oauth1_token,
-          oauth2_token: client.oauth2_token
+          oauth1_token: client.oauth1_token && "#Nimrag.OAuth1Token<...>",
+          oauth2_token: client.oauth2_token && "#Nimrag.OAuth2Token<...>"
         ],
         opts
       )

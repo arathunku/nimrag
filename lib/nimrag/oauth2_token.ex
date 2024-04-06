@@ -1,4 +1,13 @@
 defmodule Nimrag.OAuth2Token do
+  @type t :: %__MODULE__{
+    scope: String.t(),
+    jti: String.t(),
+    token_type: String.t(),
+    refresh_token: String.t(),
+    access_token: String.t(),
+    expires_at: DateTime.t(),
+    refresh_token_expires_at: DateTime.t()
+  }
   @derive Jason.Encoder
   defstruct ~w(
       scope jti token_type refresh_token access_token expires_at

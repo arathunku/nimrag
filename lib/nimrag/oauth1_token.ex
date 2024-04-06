@@ -1,4 +1,11 @@
 defmodule Nimrag.OAuth1Token do
+  @type t :: %__MODULE__{
+    oauth_token: String.t(),
+    oauth_token_secret: String.t(),
+    mfa_token: nil | String.t(),
+    domain: String.t(),
+    expires_at: DateTime.t()
+  }
   @derive Jason.Encoder
   defstruct ~w(oauth_token oauth_token_secret mfa_token domain expires_at)a
 

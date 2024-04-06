@@ -12,10 +12,8 @@ defmodule Nimrag do
   """
 
   @spec profile(Client.t()) :: {:ok, Api.Profile.t(), Client.t()} | error
-  def profile(client) do
-    Api.get(client, url: "/userprofile-service/socialProfile")
-    |> as_api_data(Api.Profile)
-  end
+  def profile(client), do: client |> profile_req() |> as_api_data(Api.Profile)
+  def profile_req(client), do: Api.get(client, url: "/userprofile-service/socialProfile")
 
   @spec steps_daily(Client.t()) :: {:ok, list(Api.DailySteps.t()), Client.t()} | error
   @spec steps_daily(Client.t(), start_day :: Date.t()) :: {:ok, list(Api.DailySteps.t()), Client.t()} | error
@@ -59,18 +57,14 @@ defmodule Nimrag do
   defp as_api_data({:error, error}, _struct_module), do: {:error, error}
 
   defp as_api_data(body, struct_module) when is_map(body) do
-    case struct_module.from_api_response(body) do
-      {:ok, struct} -> {:ok, struct}
-      {:error, error} -> {:error, {error, body}}
-    end
+    struct_module.from_api_response(body)
   end
 
   defp as_api_data(body, struct_module) when is_list(body) do
     structs =
       Enum.map(body, fn element ->
-        case struct_module.from_api_response(element) do
-          {:ok, struct} -> struct
-          {:error, error} -> {:error, {error, element}}
+        with {:ok, struct} <- struct_module.from_api_response(element) do
+          struct
         end
       end)
 

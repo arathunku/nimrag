@@ -1,5 +1,14 @@
 defmodule Nimrag.Api.UserSummaryDaily do
-  @behaviour Nimrag.Api.Data
+  use Nimrag.Api.Data
+
+  defstruct ~w(total_steps)a
+
+  def schematic() do
+    schema(__MODULE__, %{
+      field(:total_steps) => int()
+    })
+  end
+end
 
 # %{
 #   "uncategorizedStressDuration" => 120,
@@ -98,15 +107,3 @@ defmodule Nimrag.Api.UserSummaryDaily do
 #   "bodyBatteryLowestValue" => 29,
 #   "restStressDuration" => 19620
 # }
-
-  defstruct ~w(total_steps)a
-
-  @impl Nimrag.Api.Data
-  def from_api_response(%{"totalSteps" => total_steps} = _resp) do
-    {:ok, %__MODULE__{
-      total_steps: total_steps,
-    }}
-  end
-
-  def from_api_response(_), do: {:error, :invalid_response}
-end

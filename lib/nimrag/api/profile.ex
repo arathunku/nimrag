@@ -1,5 +1,5 @@
 defmodule Nimrag.Api.Profile do
-  @behaviour Nimrag.Api.Data
+  use Nimrag.Api.Data
 
   @type t :: %__MODULE__{
           id: integer(),
@@ -49,9 +49,9 @@ defmodule Nimrag.Api.Profile do
           show_recent_device: boolean(),
           show_recent_gear: boolean(),
           show_badges: boolean(),
-          other_activity: nil | String.t(),
-          other_primary_activity: nil | String.t(),
-          other_motivation: nil | String.t(),
+          other_activity: String.t(),
+          other_primary_activity: String.t(),
+          other_motivation: String.t(),
           user_roles: list(String.t()),
           name_approved: boolean(),
           user_profile_full_name: String.t(),
@@ -135,19 +135,71 @@ defmodule Nimrag.Api.Profile do
 
   defstruct @fields
 
-  @impl Nimrag.Api.Data
-  def from_api_response(%{"id" => id} = resp) do
-    {:ok,
-     Enum.reduce(@fields, %__MODULE__{id: id}, fn field, struct ->
-        api_field = field |> to_string() |> Recase.to_camel()
-
-       case Map.get(resp, api_field) do
-         nil -> struct
-         "" -> struct
-         value -> Map.put(struct, field, value)
-       end
-     end)}
+  def schematic() do
+    schema(__MODULE__, %{
+      field(:activity_heart_rate_visibility) => str(),
+      field(:activity_map_visibility) => str(),
+      field(:activity_power_visibility) => str(),
+      field(:activity_start_visibility) => str(),
+      field(:allow_golf_live_scoring) => bool(),
+      field(:allow_golf_scoring_by_connections) => bool(),
+      field(:badge_visibility) => str(),
+      field(:bio) => str(),
+      field(:course_visibility) => str(),
+      field(:cycling_classification) => nullable(str()),
+      field(:cycling_max_avg_power) => float(),
+      field(:cycling_training_speed) => nullable(str()),
+      field(:display_name) => str(),
+      field(:facebook_url) => str(),
+      field(:favorite_activity_types) => nullable(str()),
+      field(:favorite_cycling_activity_types) => nullable(str()),
+      field(:full_name) => str(),
+      field(:garmin_guid) => nullable(str()),
+      field(:id) => int(),
+      field(:level_is_viewed) => bool(),
+      field(:level_point_threshold) => int(),
+      field(:level_update_date) => str(),
+      field(:location) => str(),
+      field(:make_golf_scorecards_private) => str(),
+      field(:motivation) => str(),
+      field(:name_approved) => str(),
+      field(:other_activity) => str(),
+      field(:other_motivation) => str(),
+      field(:other_primary_activity) => str(),
+      field(:personal_website) => str(),
+      field(:primary_activity) => str(),
+      field(:profile_id) => int(),
+      field(:profile_image_url_large) => str(),
+      field(:profile_image_url_medium) => str(),
+      field(:profile_image_url_small) => str(),
+      field(:profile_image_uuid) => str(),
+      field(:profile_visibility) => str(),
+      field(:running_training_speed) => str(),
+      field(:show_activity_class) => bool(),
+      field(:show_age) => bool(),
+      field(:show_age_range) => bool(),
+      field(:show_badges) => bool(),
+      field(:show_gender) => bool(),
+      field(:show_height) => bool(),
+      field(:show_last_12_months) => bool(),
+      field(:show_lifetime_totals) => bool(),
+      field(:show_personal_records) => bool(),
+      field(:show_recent_device) => bool(),
+      field(:show_recent_favorites) => bool(),
+      field(:show_recent_gear) => bool(),
+      field(:show_upcoming_events) => bool(),
+      field(:show_vo_2_max) => bool(),
+      field(:show_weight) => bool(),
+      field(:show_weight_class) => bool(),
+      field(:swimming_training_speed) => str(),
+      field(:twitter_url) => str(),
+      field(:user_level) => str(),
+      field(:user_name) => str(),
+      field(:user_point) => int(),
+      field(:user_point_offset) => int(),
+      field(:user_pro) => str(),
+      field(:user_profile_full_name) => str(),
+      field(:user_role) => str()
+    })
   end
-
-  def from_api_response(_), do: {:error, :invalid_response}
 end

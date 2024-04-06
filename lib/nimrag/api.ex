@@ -61,6 +61,10 @@ defmodule Nimrag.Api do
         req
         |> Req.Request.put_header("Authorization", "Bearer #{client.oauth2_token.access_token}")
         |> Req.Request.append_response_steps(
+          req_nimrag_attach_request_path: fn {req, resp} ->
+            %{path: path} = URI.parse(req.url)
+            {req, Req.Response.put_private(resp, :request_path, path)}
+          end,
           req_nimrag_attach_client: fn {req, resp} ->
             {req, Req.Response.put_private(resp, :client, client)}
           end

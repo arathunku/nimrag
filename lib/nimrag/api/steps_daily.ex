@@ -1,7 +1,7 @@
 defmodule Nimrag.Api.StepsDaily do
   use Nimrag.Api.Data
 
-  @type t :: %__MODULE__{
+  @type t() :: %__MODULE__{
           calendar_date: String.t(),
           step_goal: integer(),
           total_distance: integer(),
@@ -12,10 +12,10 @@ defmodule Nimrag.Api.StepsDaily do
 
   def schematic() do
     schema(__MODULE__, %{
-      calendar_date: date(),
-      step_goal: int(),
-      total_distance: int(),
-      total_steps: int()
+      field(:calendar_date) => date(),
+      field(:step_goal) => int(),
+      field(:total_distance) => int(),
+      field(:total_steps) => int()
     })
   end
 end

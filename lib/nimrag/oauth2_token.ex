@@ -1,24 +1,29 @@
 defmodule Nimrag.OAuth2Token do
-  @type t :: %__MODULE__{
-    scope: String.t(),
-    jti: String.t(),
-    token_type: String.t(),
-    refresh_token: String.t(),
-    access_token: String.t(),
-    expires_at: DateTime.t(),
-    refresh_token_expires_at: DateTime.t()
-  }
+  @moduledoc """
+  See `Nimrag.Credentials` for more details on how to obtain auth tokens.
+  """
+  @type t() :: %__MODULE__{
+          scope: nil | String.t(),
+          jti: nil | String.t(),
+          token_type: nil | String.t(),
+          refresh_token: nil | String.t(),
+          access_token: nil | String.t(),
+          expires_at: nil | DateTime.t(),
+          refresh_token_expires_at: nil | DateTime.t()
+        }
   @derive Jason.Encoder
   defstruct ~w(
       scope jti token_type refresh_token access_token expires_at
       refresh_token_expires_at
     )a
 
+  @spec expired?(t()) :: boolean()
   def expired?(%__MODULE__{expires_at: nil}), do: true
 
   def expired?(%__MODULE__{expires_at: expires_at}),
     do: DateTime.before?(expires_at, DateTime.utc_now())
 
+  @spec refresh_token_expired?(t()) :: boolean()
   def refresh_token_expired?(%__MODULE__{refresh_token_expires_at: nil}), do: true
 
   def refresh_token_expired?(%__MODULE__{refresh_token_expires_at: expires_at}),

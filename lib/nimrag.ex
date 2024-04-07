@@ -1,79 +1,125 @@
 defmodule Nimrag do
   alias Nimrag.Api
+  alias Nimrag.Client
+  import Nimrag.Api, only: [get: 2, response_as_data: 2]
 
   @type error :: {atom, any}
 
-  @moduledoc """
-  All functions here to call Garmin's API.
-
-  They will return {:ok, Struct, client} or {:error, error}.
-
-  Client is always returned on success to keep the OAuth2 token updated.
-  """
+  @moduledoc "README.md"
+             |> File.read!()
+             |> String.split("<!-- @moduledoc -->")
+             |> Enum.fetch!(1)
+  @external_resource "README.md"
 
   @spec profile(Client.t()) :: {:ok, Api.Profile.t(), Client.t()} | error
-  def profile(client), do: client |> profile_req() |> as_api_data(Api.Profile)
-  def profile_req(client), do: Api.get(client, url: "/userprofile-service/socialProfile")
+  def profile(client), do: client |> profile_req() |> response_as_data(Api.Profile)
+  def profile_req(client), do: get(client, url: "/userprofile-service/socialProfile")
 
-  @spec steps_daily(Client.t()) :: {:ok, list(Api.DailySteps.t()), Client.t()} | error
-  @spec steps_daily(Client.t(), start_day :: Date.t()) :: {:ok, list(Api.DailySteps.t()), Client.t()} | error
-  @spec steps_daily(Client.t(), start_day :: Date.t(), end_day :: Date.t()) :: {:ok, list(Api.DailySteps.t()), Client.t()} | error
+  @spec steps_daily(Client.t()) :: {:ok, list(Api.StepsDaily.t()), Client.t()} | error
+  @spec steps_daily(Client.t(), start_day :: Date.t()) ::
+          {:ok, list(Api.StepsDaily.t()), Client.t()} | error
+  @spec steps_daily(Client.t(), start_day :: Date.t(), end_day :: Date.t()) ::
+          {:ok, list(Api.StepsDaily.t()), Client.t()} | error
   def steps_daily(client, start_date \\ Date.utc_today(), end_date \\ Date.utc_today()) do
-    Api.get(client,
+    client |> steps_daily_req(start_date, end_date) |> response_as_data(Api.StepsDaily)
+  end
+
+  def steps_daily_req(client, start_date \\ Date.utc_today(), end_date \\ Date.utc_today()) do
+    get(client,
       url: "/usersummary-service/stats/steps/daily/:start_date/:end_date",
       path_params: [start_date: Date.to_iso8601(start_date), end_date: Date.to_iso8601(end_date)]
     )
-    |> as_api_data(Api.StepsDaily)
   end
 
-  def user_summary(client, date \\ Date.utc_today()) do
-    Api.get(client,
+  @spec user_summary(Client.t()) :: {:ok, list(Api.UserSummaryDaily.t()), Client.t()} | error
+  @spec user_summary(Client.t(), start_day :: Date.t()) ::
+          {:ok, Api.UserSummaryDaily.t(), Client.t()} | error
+  def user_summary(client, date \\ Date.utc_today()),
+    do: client |> user_summary_req(date) |> response_as_data(Api.UserSummaryDaily)
+
+  def user_summary_req(client, date) do
+    get(client,
       url: "/usersummary-service/usersummary/daily",
       params: [calendarDate: Date.to_iso8601(date)]
     )
-    |> as_api_data(Api.UserSummaryDaily)
   end
 
+  @spec last_activity(Client.t()) :: {:ok, Api.Activity.t(), Client.t()} | error
   def last_activity(client) do
     with {:ok, [activity | _], client} <- activities(client, 0, 1) do
       {:ok, activity, client}
     end
   end
 
-  def activities(client, start \\ 0, limit \\ 10) do
-    Api.get(client,
-      url: "/activitylist-service/activities/search/activities",
-      params: [limit: limit, start: start]
-    )
-    |> as_api_data(Api.Activity)
+  @spec activities(Client.t()) :: {:ok, list(Api.Activity.t()), Client.t()} | error
+  @spec activities(Client.t(), offset :: integer()) ::
+          {:ok, list(Api.Activity.t()), Client.t()} | error
+  @spec activities(Client.t(), offset :: integer(), limit :: integer()) ::
+          {:ok, list(Api.Activity.t()), Client.t()} | error
+  def activities(client, offset \\ 0, limit \\ 10) do
+    client |> activities_req(offset, limit) |> response_as_data(Api.Activity)
   end
 
-  defp as_api_data({:ok, %Req.Response{status: 200, body: body}, client}, struct_module) do
-    with {:ok, data} <- as_api_data(body, struct_module) do
-      {:ok, data, client}
+  def activities_req(client, offset, limit) do
+    get(client,
+      url: "/activitylist-service/activities/search/activities",
+      params: [limit: limit, start: offset]
+    )
+  end
+
+  @doc """
+  Downloads activity.
+
+  Activity download artifact - if original format is used, it's a zip and you
+  still need to decode it.
+
+  CSV download is contains a summary of splits.
+
+  ## Working with original zip file
+
+  ```elixir
+  {:ok, zip, client} = Nimrag.download_activity(client, 123, :raw)
+  {:ok, [file_path]} = :zip.unzip(zip, cwd: "/tmp")
+  # Use https://github.com/arathunku/ext_fit to decode FIT file
+  {:ok, records} = file_path |> File.read!() |> ExtFit.Decode.decode()
+  ```
+  """
+
+  @spec download_activity(Client.t(), activity_id :: integer(), :raw) ::
+          {:ok, binary(), Client.t()} | error
+  @spec download_activity(Client.t(), activity_id :: integer(), :tcx) ::
+          {:ok, binary(), Client.t()} | error
+  @spec download_activity(Client.t(), activity_id :: integer(), :gpx) ::
+          {:ok, binary(), Client.t()} | error
+  @spec download_activity(Client.t(), activity_id :: integer(), :kml) ::
+          {:ok, binary(), Client.t()} | error
+  @spec download_activity(Client.t(), activity_id :: integer(), :csv) ::
+          {:ok, binary(), Client.t()} | error
+  def download_activity(client, activity_id, :raw) do
+    with {:ok, %{body: body, status: 200}, client} <-
+           download_activity_req(client,
+             prefix_url: "download-service/files/activity",
+             activity_id: activity_id
+           ) do
+      {:ok, body, client}
     end
   end
 
-  defp as_api_data({:error, error}, _struct_module), do: {:error, error}
-
-  defp as_api_data(body, struct_module) when is_map(body) do
-    struct_module.from_api_response(body)
+  def download_activity(client, activity_id, format) when format in ~w(tcx gpx kml csv)a do
+    with {:ok, %{body: body, status: 200}, client} <-
+           download_activity_req(client,
+             prefix_url: "download-service/export/#{format}/activity",
+             activity_id: activity_id
+           ) do
+      {:ok, body, client}
+    end
   end
 
-  defp as_api_data(body, struct_module) when is_list(body) do
-    structs =
-      Enum.map(body, fn element ->
-        with {:ok, struct} <- struct_module.from_api_response(element) do
-          struct
-        end
-      end)
-
-    first_error =
-      Enum.find(structs, fn
-        {:error, _} -> true
-        _ -> false
-      end)
-
-    first_error || {:ok, structs}
+  @doc false
+  def download_activity_req(client, path_params) do
+    get(client,
+      url: ":prefix_url/:activity_id",
+      path_params: path_params
+    )
   end
 end

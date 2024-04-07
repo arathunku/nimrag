@@ -27,15 +27,34 @@ defmodule Nimrag.Api do
     end
   end
 
-  # def get(%Client{} = client, opts) do
-  #   client
-  #   |> req(opts)
-  #   |> Req.get()
-  #   |> case do
-  #     {:ok, %{status: 200} = resp} -> {:ok, resp, client}
-  #     {:error, response} -> {:error, response, client}
-  #   end
-  # end
+  def response_as_data({:ok, %Req.Response{status: 200, body: body}, client}, struct_module) do
+    with {:ok, data} <- response_as_data(body, struct_module) do
+      {:ok, data, client}
+    end
+  end
+
+  def response_as_data({:error, error}, _struct_module), do: {:error, error}
+
+  def response_as_data(body, struct_module) when is_map(body) do
+    struct_module.from_api_response(body)
+  end
+
+  def response_as_data(body, struct_module) when is_list(body) do
+    structs =
+      Enum.map(body, fn element ->
+        with {:ok, struct} <- struct_module.from_api_response(element) do
+          struct
+        end
+      end)
+
+    first_error =
+      Enum.find(structs, fn
+        {:error, _} -> true
+        _ -> false
+      end)
+
+    first_error || {:ok, structs}
+  end
 
   defp req(%Client{} = client, opts) do
     if client.oauth2_token == nil do
@@ -70,8 +89,8 @@ defmodule Nimrag.Api do
           end
         )
 
-      {:error, _reason} ->
-        {Req.Request.halt(req), :oauth2_token_refresh_error}
+      {:error, reason} ->
+        {Req.Request.halt(req), {:oauth2_token_refresh_error, reason}}
     end
   end
 
@@ -83,14 +102,18 @@ defmodule Nimrag.Api do
     %Client{oauth1_token: %OAuth1Token{oauth_token: oauth_token}, rate_limit: rate_limit} =
       Req.Request.get_private(req, :client)
 
-    [scale_ms: scale_ms, limit: limit] = rate_limit
+    case rate_limit do
+      [scale_ms: scale_ms, limit: limit] ->
+        case Hammer.check_rate(:nimrag, "garmin.com:#{oauth_token}", scale_ms, limit) do
+          {:allow, _count} ->
+            req
 
-    case Hammer.check_rate(:nimrag, "garmin.com:#{oauth_token}", scale_ms, limit) do
-      {:allow, _count} ->
+          {:deny, limit} ->
+            {Req.Request.halt(req), {:rate_limit, limit}}
+        end
+
+      false ->
         req
-
-      {:deny, limit} ->
-        {Req.Request.halt(req), {:rate_limit, limit}}
     end
   end
 end

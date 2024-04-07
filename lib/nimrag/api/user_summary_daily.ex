@@ -1,6 +1,10 @@
 defmodule Nimrag.Api.UserSummaryDaily do
   use Nimrag.Api.Data
 
+  @type t() :: %__MODULE__{
+          total_steps: integer()
+        }
+
   defstruct ~w(total_steps)a
 
   def schematic() do

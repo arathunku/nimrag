@@ -1,6 +1,11 @@
 defmodule Nimrag.Api.Data do
   import Schematic
 
+  @moduledoc false
+
+  # Helper module for transforming API responses into proper structs
+  # Uses https://github.com/mhanberg/schematic and adds
+
   defmacro __using__(_) do
     quote do
       import Nimrag.Api.Data

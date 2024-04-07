@@ -1,7 +1,6 @@
 defmodule Nimrag.ApiHelper do
   require Logger
 
-  @doc false
   def store_response_as_test_fixture({:ok, %Req.Response{} = resp, _}) do
     request_path = Req.Response.get_private(resp, :request_path)
     path = rel_fixture_path(request_path)
@@ -42,17 +41,23 @@ defmodule Nimrag.ApiHelper do
     Path.join([__DIR__, "..", ".."])
   end
 
-  def client() do
-    Nimrag.Client.new(req_options: [plug: {Req.Test, Nimrag.Api}])
-    |> Nimrag.Client.put_oauth_token(%Nimrag.OAuth1Token{})
-    |> Nimrag.Client.put_oauth_token(%Nimrag.OAuth2Token{
-      scope: "WRITE",
-      jti: "uuid-1234-5678-9012-3456",
-      token_type: "Bearer",
-      refresh_token: "test-refresh-token",
-      access_token: "test-access-token",
-      expires_at: DateTime.utc_now() |> DateTime.add(1, :hour),
-      refresh_token_expires_at: DateTime.utc_now() |> DateTime.add(1, :hour)
+  @spec client :: Nimrag.Client.t() | no_return
+  def client do
+    Nimrag.Client.new(
+      req_options: [plug: {Req.Test, Nimrag.Api}],
+      rate_limit: false
+    )
+    |> Nimrag.Client.with_auth({
+      %Nimrag.OAuth1Token{},
+      %Nimrag.OAuth2Token{
+        scope: "WRITE",
+        jti: "uuid-1234-5678-9012-3456",
+        token_type: "Bearer",
+        refresh_token: "test-refresh-token",
+        access_token: "test-access-token",
+        expires_at: DateTime.utc_now() |> DateTime.add(1, :hour),
+        refresh_token_expires_at: DateTime.utc_now() |> DateTime.add(1, :hour)
+      }
     })
   end
 end

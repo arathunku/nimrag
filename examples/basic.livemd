@@ -1,0 +1,61 @@
+# Basic
+
+```elixir
+Mix.install([{:nimrag, path: "/data"}, {:kino, "~> 0.12"}])
+```
+
+## Login
+
+Given that Garmin doesn't have official API for individuals, nor any public auth keys you can generate, Nimrag will use your username, password and may ask for MFA code.
+
+```elixir
+form =
+  Kino.Control.form(
+    [
+      username: Kino.Input.text("Garmin email"),
+      password: Kino.Input.password("Garmin password")
+    ],
+    submit: "Send"
+  )
+
+form
+```
+
+```elixir
+mfa_code = Kino.Control.form([mfa: Kino.Input.text("MFA")], submit: "Submit")
+```
+
+```elixir
+Kino.listen(form, fn event ->
+  credentials = Nimrag.Credentials.new(event.data.username, event.data.password)
+  {:ok, client} = Nimrag.Auth.login_sso(credentials)
+
+  :ok = Nimrag.Credentials.write_fs_oauth1_token(client)
+  :ok = Nimrag.Credentials.write_fs_oauth2_token(client)
+end)
+```
+
+`login_sso` will do the Auth flow and may ask you for MFA code.
+
+```elixir
+client =
+  Nimrag.Client.new()
+  |> Nimrag.Client.with_auth(Nimrag.Credentials.read_oauth_tokens!())
+```
+
+## Use API
+
+Fetch your profile
+
+```elixir
+{:ok, %Nimrag.Api.Profile{} = profiln, client} = Nimrag.profile(client)
+profile
+```
+
+Fetch latest activity
+
+```elixir
+{:ok, %Nimrag.Api.Activity{} = activity, client} = Nimrag.last_activity(client)
+
+activity
+```

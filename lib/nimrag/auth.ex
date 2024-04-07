@@ -5,6 +5,20 @@ defmodule Nimrag.Auth do
 
   require Logger
 
+  @moduledoc """
+  Unofficial authentication to Garmin's API.
+
+  It requires username, password, and may ask for MFA code if needed.
+  See `Nimrag.Credentials` for more details on how to provide credentials.
+
+  It's using the same method for obtaining OAuth1 and OAuth2 tokens as the mobile app,
+  and popular Python library [garth](https://github.com/matin/garth).
+
+  **This may break at any time as it's not using public API.**
+
+  Garmin API is available only to business partners, so please don't abuse it in any way.
+  """
+
   # hardcoded values from fetched s3 url in https://github.com/matin/garth
   # base64 encoded values, based on GitHub issues, that's what the app is using
   @oauth_consumer_key Base.url_decode64!("ZmMzZTk5ZDItMTE4Yy00NGI4LThhZTMtMDMzNzBkZGUyNGMw")
@@ -16,6 +30,10 @@ defmodule Nimrag.Auth do
   # simulate web-like login flow without using secret key/secret extracted from mobile app
   # def login_web(client) do
   # end
+
+  @spec login_sso(Credentials.t()) :: {:ok, Client.t()} | {:error, String.t()}
+  @spec login_sso(Client.t()) :: {:ok, Client.t()} | {:error, String.t()}
+  @spec login_sso(Client.t(), Credentials.t()) :: {:ok, Client.t()} | {:error, String.t()}
 
   def login_sso, do: login_sso(Client.new(), Credentials.new())
   def login_sso(%Credentials{} = credentials), do: login_sso(Client.new(), credentials)
@@ -89,6 +107,8 @@ defmodule Nimrag.Auth do
     force = Keyword.get(opts, :force, false)
 
     if client.oauth2_token == nil || OAuth2Token.expired?(client.oauth2_token) || force do
+      Logger.info(fn -> "Refreshing OAuth2Token #{inspect(client.oauth2_token)}" end)
+
       with {:ok, oauth2_token} <- get_oauth2_token(client, client.oauth1_token) do
         {:ok, client |> Client.put_oauth_token(oauth2_token)}
       end
@@ -122,7 +142,7 @@ defmodule Nimrag.Auth do
 
     now = DateTime.utc_now()
 
-    {:ok, response} =
+    result =
       client.connectapi
       |> Req.Request.put_header(auth, oauth)
       |> Req.post(
@@ -131,29 +151,33 @@ defmodule Nimrag.Auth do
         user_agent: @mobile_user_agent
       )
 
-    %{
-      "access_token" => access_token,
-      "expires_in" => expires_in,
-      "jti" => jti,
-      "refresh_token" => refresh_token,
-      "refresh_token_expires_in" => refresh_token_expires_in,
-      "scope" => scope,
-      "token_type" => token_type
-    } = response.body
+    with {:ok, response} <- result do
+      %{
+        "access_token" => access_token,
+        "expires_in" => expires_in,
+        "jti" => jti,
+        "refresh_token" => refresh_token,
+        "refresh_token_expires_in" => refresh_token_expires_in,
+        "scope" => scope,
+        "token_type" => token_type
+      } = response.body
 
-    expires_at = DateTime.add(now, expires_in - @short_expires_by_n_seconds, :second)
-    refresh_token_expires_at = DateTime.add(now, refresh_token_expires_in - @short_expires_by_n_seconds, :second)
+      expires_at = DateTime.add(now, expires_in - @short_expires_by_n_seconds, :second)
 
-    {:ok,
-     %OAuth2Token{
-       access_token: access_token,
-       jti: jti,
-       expires_at: expires_at,
-       refresh_token: refresh_token,
-       refresh_token_expires_at: refresh_token_expires_at,
-       scope: scope,
-       token_type: token_type
-     }}
+      refresh_token_expires_at =
+        DateTime.add(now, refresh_token_expires_in - @short_expires_by_n_seconds, :second)
+
+      {:ok,
+       %OAuth2Token{
+         access_token: access_token,
+         jti: jti,
+         expires_at: expires_at,
+         refresh_token: refresh_token,
+         refresh_token_expires_at: refresh_token_expires_at,
+         scope: scope,
+         token_type: token_type
+       }}
+    end
   end
 
   defp maybe_handle_mfa(sso, %Req.Response{} = prev_resp, cookie, credentials) do
@@ -214,6 +238,8 @@ defmodule Nimrag.Auth do
     end
   end
 
+  defp get_csrf_token(%Req.Response{}), do: {:error, :missing_csrf}
+
   defp get_ticket(%Req.Response{body: body, status: 200}) do
     case Regex.scan(~r/embed\?ticket=([^"]+)"/, body) do
       [[_, ticket]] -> {:ok, ticket}
@@ -235,10 +261,14 @@ defmodule Nimrag.Auth do
         _csrf: csrf_token
       }
     )
-    |> check_response(:signin_req)
+    |> check_response(:submit_mfa_req)
   end
 
-  defp get_mfa(sso, cookie) do
+  @get_mfa_retry_count 3
+  defp get_mfa(sso, cookie), do: get_mfa(sso, cookie, @get_mfa_retry_count)
+  defp get_mfa(_sso, _cookie, 0), do: {:error, :mfa_unavailable}
+
+  defp get_mfa(sso, cookie, retry) do
     sso.client
     |> Req.Request.put_header("cookie", cookie)
     |> Req.Request.put_header("referer", "#{sso.url}/signin")
@@ -247,6 +277,15 @@ defmodule Nimrag.Auth do
       params: sso.signin_params
     )
     |> check_response(:get_mfa)
+    |> case do
+      {:ok, %{status: 302}} ->
+        Logger.debug(fn -> "Getting MFA submit page failed, retrying..." end)
+        Process.sleep(1000)
+        get_mfa(sso, cookie, retry - 1)
+
+      result ->
+        result
+    end
   end
 
   defp embed_req(sso) do
@@ -319,7 +358,17 @@ defmodule Nimrag.Auth do
     |> Keyword.put(:user_agent, @mobile_user_agent)
     |> Keyword.put(:retry, false)
     |> Keyword.put(:redirect, false)
+    |> Keyword.put(
+      :connect_options,
+      Keyword.merge(
+        Keyword.get(client.req_options, :connect_options) || [],
+        # It's very important that http2 is here, otherwise MFA flow fails.
+        protocols: [:http1, :http2]
+      )
+    )
     |> Req.new()
+    |> Req.Request.put_new_header("host", "sso.#{client.domain}")
+    |> Req.Request.put_header("host", client.domain)
   end
 
   defp sso_url(%{domain: domain}) do

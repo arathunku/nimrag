@@ -23,7 +23,9 @@ def deps do
 end
 ```
 
-If you'd like to use it from Livebook, take a look at [this example](./examples/basic.livemd)
+If you'd like to use it from Livebook, take a look at [this example](./examples/basic.livemd) or watch demo:
+
+https://github.com/arathunku/nimrag/assets/749393/7246f688-4820-4276-96de-5d8ed7b2fd16
 
 ## Usage
 

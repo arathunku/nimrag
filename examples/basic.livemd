@@ -1,0 +1,178 @@
+# Basic
+
+```elixir
+Mix.install([
+  # dev
+  # {:nimrag, path: "/data"},
+  {:nimrag, "~> 0.1.0"},
+  {:kino, "~> 0.12"},
+  {:kino_vega_lite, "~> 0.1.10"},
+  {:explorer, "~> 0.8.0"},
+  # humanized format for durations from activities!
+  {:timex, "~> 3.7.11"},
+  # parsing FIT files
+  {:ext_fit, "~> 0.1"}
+])
+```
+
+## Nimrag
+
+This notebook will show you:
+
+1. How to do inital auth with Garmin's API, obtain OAuth keys
+2. Fetch your profile information
+3. Fetch latest activity and display some information about it
+4. Graph steps from recent days/weeks
+
+## Login
+
+Given that Garmin doesn't have official API for individuals, nor any public auth keys you can generate, Nimrag will use your username, password and may ask for MFA code.
+
+`login_sso` will do the Auth flow and may ask you for MFA code.
+
+<!-- livebook:{"continue_on_error":true} -->
+
+```elixir
+form =
+  Kino.Control.form(
+    [
+      username: Kino.Input.text("Garmin email"),
+      password: Kino.Input.password("Garmin password")
+    ],
+    submit: "Log in",
+    reset_on_submit: true
+  )
+
+mfa_code = Kino.Control.form([mfa: Kino.Input.text("MFA")], submit: "Submit")
+
+frame = Kino.Frame.new()
+Kino.render(frame)
+Kino.Frame.append(frame, form)
+
+Kino.listen(form, fn event ->
+  credentials =
+    Nimrag.Credentials.new(
+      if(event.data.username != "",
+        do: event.data.username,
+        else: System.get_env("LB_NIMRAG_USERNAME")
+      ),
+      if(event.data.password != "",
+        do: event.data.password,
+        else: System.get_env("LB_NIMRAG_PASSWORD")
+      ),
+      fn ->
+        Kino.Frame.append(frame, mfa_code)
+        Kino.Control.subscribe(mfa_code, :mfa)
+
+        receive do
+          {:mfa, %{data: %{mfa: code}}} ->
+            {:ok, String.trim(code)}
+        after
+          30_000 ->
+            IO.puts(:stderr, "No message in 30 seconds")
+            {:error, :missing_mfa}
+        end
+      end
+    )
+
+  {:ok, client} = Nimrag.Auth.login_sso(credentials)
+  :ok = Nimrag.Credentials.write_fs_oauth1_token(client)
+  :ok = Nimrag.Credentials.write_fs_oauth2_token(client)
+  IO.puts("New OAuth tokens saved!")
+end)
+
+client =
+  Nimrag.Client.new()
+  |> Nimrag.Client.with_auth(Nimrag.Credentials.read_oauth_tokens!())
+```
+
+## Use API
+
+Fetch your profile
+
+```elixir
+{:ok, %Nimrag.Api.Profile{} = profile, client} = Nimrag.profile(client)
+
+Kino.Markdown.new("""
+  ## Profile for: #{profile.display_name}
+
+  ![profile pic](#{profile.profile_image_url_medium})
+  #{profile.bio}
+
+  Favorite activity types:
+
+  #{profile.favorite_activity_types |> Enum.map(&"- #{&1}") |> Enum.join("\n")}
+""")
+```
+
+Fetch latest activity
+
+```elixir
+{:ok, %Nimrag.Api.Activity{} = activity, client} = Nimrag.last_activity(client)
+
+# IO.inspect(activity)
+
+duration_humanized =
+  activity.duration
+  |> trunc()
+  |> Timex.Duration.from_seconds()
+  |> Elixir.Timex.Format.Duration.Formatters.Humanized.format()
+
+Kino.Markdown.new("""
+  ## #{activity.activity_name} at #{activity.start_local_at}
+
+  * Distance: #{Float.round(activity.distance / 1000, 2)} km
+  * Duration: #{duration_humanized}
+  * ID: #{activity.id}
+""")
+```
+
+Or even download and analyse raw FIT file
+
+```elixir
+{:ok, zip, client} = Nimrag.download_activity(client, activity.id, :raw)
+{:ok, [file_path]} = :zip.unzip(zip, cwd: "/tmp")
+{:ok, records} = file_path |> File.read!() |> ExtFit.Decode.decode()
+
+hd(records)
+```
+
+Show a graph of steps from last week
+
+```elixir
+today = Date.utc_today()
+
+read_date = fn input ->
+  input
+  |> Kino.render()
+  |> Kino.Input.read()
+end
+
+Kino.Markdown.new("## Select date range") |> Kino.render()
+from_value = Kino.Input.date("From day", default: Date.add(today, -21)) |> read_date.()
+to_value = Kino.Input.date("To day", default: today) |> read_date.()
+
+if !from_value || !to_value do
+  Kino.interrupt!(:error, "Input required")
+end
+
+{:ok, steps_daily, client} = Nimrag.steps_daily(client, from_value, to_value)
+
+steps =
+  Explorer.DataFrame.new(
+    date: Enum.map(steps_daily, & &1.calendar_date),
+    steps: Enum.map(steps_daily, & &1.total_steps)
+  )
+
+Kino.nothing()
+```
+
+<!-- livebook:{"attrs":"eyJjaGFydF90aXRsZSI6IkRhaWx5IG51bWJlciBvZiBzdGVwcyIsImhlaWdodCI6bnVsbCwibGF5ZXJzIjpbeyJhY3RpdmUiOnRydWUsImNoYXJ0X3R5cGUiOiJiYXIiLCJjb2xvcl9maWVsZCI6bnVsbCwiY29sb3JfZmllbGRfYWdncmVnYXRlIjpudWxsLCJjb2xvcl9maWVsZF9iaW4iOm51bGwsImNvbG9yX2ZpZWxkX3NjYWxlX3NjaGVtZSI6bnVsbCwiY29sb3JfZmllbGRfdHlwZSI6bnVsbCwiZGF0YV92YXJpYWJsZSI6InN0ZXBzIiwiZ2VvZGF0YV9jb2xvciI6ImJsdWUiLCJsYXRpdHVkZV9maWVsZCI6bnVsbCwibG9uZ2l0dWRlX2ZpZWxkIjpudWxsLCJ4X2ZpZWxkIjoiZGF0ZSIsInhfZmllbGRfYWdncmVnYXRlIjpudWxsLCJ4X2ZpZWxkX2JpbiI6bnVsbCwieF9maWVsZF9zY2FsZV90eXBlIjpudWxsLCJ4X2ZpZWxkX3R5cGUiOiJ0ZW1wb3JhbCIsInlfZmllbGQiOiJzdGVwcyIsInlfZmllbGRfYWdncmVnYXRlIjpudWxsLCJ5X2ZpZWxkX2JpbiI6bnVsbCwieV9maWVsZF9zY2FsZV90eXBlIjpudWxsLCJ5X2ZpZWxkX3R5cGUiOiJxdWFudGl0YXRpdmUifV0sInZsX2FsaWFzIjoiRWxpeGlyLlZlZ2FMaXRlIiwid2lkdGgiOjgwMH0","chunks":null,"kind":"Elixir.KinoVegaLite.ChartCell","livebook_object":"smart_cell"} -->
+
+```elixir
+VegaLite.new(width: 800, title: "Daily number of steps")
+|> VegaLite.data_from_values(steps, only: ["date", "steps"])
+|> VegaLite.mark(:bar)
+|> VegaLite.encode_field(:x, "date", type: :temporal)
+|> VegaLite.encode_field(:y, "steps", type: :quantitative)
+```

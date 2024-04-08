@@ -50,6 +50,8 @@ Kino.render(frame)
 Kino.Frame.append(frame, form)
 
 Kino.listen(form, fn event ->
+  Kino.Frame.append(frame, Kino.Markdown.new("Authenticating..."))
+
   credentials =
     Nimrag.Credentials.new(
       if(event.data.username != "",
@@ -81,6 +83,10 @@ Kino.listen(form, fn event ->
   IO.puts("New OAuth tokens saved!")
 end)
 
+Kino.nothing()
+```
+
+```elixir
 client =
   Nimrag.Client.new()
   |> Nimrag.Client.with_auth(Nimrag.Credentials.read_oauth_tokens!())

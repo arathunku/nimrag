@@ -11,6 +11,8 @@ defmodule Nimrag.Api.Data do
       import Nimrag.Api.Data
       import Schematic
 
+      alias Nimrag.Api
+
       def from_api_response(resp) do
         Nimrag.Api.Data.from_api_response(resp, __MODULE__)
       end

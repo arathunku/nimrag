@@ -55,7 +55,7 @@ credentials = Nimrag.Credentials.new("username", "password")
 
 Use functions from `Nimrag` to fetch data from Garmin's API.
 
-```
+```elixir
 # Restore previously cached in ~/.nimrag OAuth tokens
 client = Nimrag.Client.new() |> Nimrag.Client.with_auth(Nimrag.Credentials.read_oauth_tokens!())
 

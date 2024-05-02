@@ -1,0 +1,86 @@
+# Sleep
+
+```elixir
+Mix.install([
+  {:nimrag, path: "/data"},
+  {:kino, "~> 0.12"},
+  {:kino_vega_lite, "~> 0.1.10"},
+  {:explorer, "~> 0.8.0"},
+  # humanized format for durations from activities!
+  {:timex, "~> 3.7.11"}
+])
+```
+
+## Section
+
+To learn more about Nimrag, check the [documentation](https://hexdocs.pm/nimrag).
+
+This notebook assumes ready to-go OAuth tokens are saved in the filesystem.
+
+```elixir
+client =
+  Nimrag.Client.new()
+  |> Nimrag.Client.with_auth(Nimrag.Credentials.read_oauth_tokens!())
+
+{:ok, %Nimrag.Api.Profile{} = profile, client} = Nimrag.profile(client)
+:ok = Nimrag.Credentials.write_fs_oauth2_token(client)
+
+username = "arathunku"
+Kino.nothing()
+```
+
+## Daily sleep
+
+```elixir
+prev_number_of_days = 14
+
+sleep_data =
+  prev_number_of_days..0
+  |> Enum.map(fn day_shift ->
+    date = Date.utc_today() |> Date.add(-1 * day_shift)
+
+    {:ok, %Nimrag.Api.SleepDaily{} = sleep_daily, _client} =
+      Nimrag.sleep_daily(
+        client,
+        username,
+        date
+      )
+
+    sleep_daily
+  end)
+```
+
+```elixir
+sleep_stats =
+  sleep_data
+  |> Enum.map(
+    &%{
+      date: &1.sleep.calendar_date,
+      duration_hours: &1.sleep.sleep_time_seconds / 3600,
+      duration:
+        &1.sleep.sleep_time_seconds
+        |> Timex.Duration.from_seconds()
+        |> Timex.format_duration(:humanized)
+    }
+  )
+  |> Explorer.DataFrame.new()
+
+VegaLite.new(title: "Sleep duration", width: 720, height: 400)
+|> VegaLite.data_from_values(sleep_stats, only: ["date", "duration_hours", "duration"])
+|> VegaLite.mark(:bar, tooltip: true)
+|> VegaLite.encode_field(:y, "duration_hours",
+  type: :quantitative,
+  axis: %{title: "Duration", values: 0..24 |> Enum.to_list()}
+)
+|> VegaLite.encode_field(:x, "date",
+  type: :temporal,
+  time_unit: "yearmonthdate",
+  band_position: 0.5,
+  axis: %{title: "Date", label_angle: -90, tick_count: [interval: "day", step: 1]}
+)
+|> VegaLite.encode(:tooltip, [
+  [field: "duration", type: :nominal],
+  [field: "date", type: :temporal]
+])
+|> VegaLite.param("hover", select: [type: "point", on: "pointerover", clear: "pointerout"])
+```

@@ -26,9 +26,9 @@ defmodule Nimrag do
   Avoid requesting too big ranges as it may fail.
   """
   @spec steps_daily(Client.t()) :: {:ok, list(Api.StepsDaily.t()), Client.t()} | error()
-  @spec steps_daily(Client.t(), start_day :: Date.t()) ::
+  @spec steps_daily(Client.t(), start_date :: Date.t()) ::
           {:ok, list(Api.StepsDaily.t()), Client.t()} | error()
-  @spec steps_daily(Client.t(), start_day :: Date.t(), end_day :: Date.t()) ::
+  @spec steps_daily(Client.t(), start_date :: Date.t(), end_date :: Date.t()) ::
           {:ok, list(Api.StepsDaily.t()), Client.t()} | error()
   def steps_daily(client, start_date \\ Date.utc_today(), end_date \\ Date.utc_today()) do
     if Date.before?(end_date, start_date) do
@@ -44,6 +44,25 @@ defmodule Nimrag do
     get(client,
       url: "/usersummary-service/stats/steps/daily/:start_date/:end_date",
       path_params: [start_date: Date.to_iso8601(start_date), end_date: Date.to_iso8601(end_date)]
+    )
+  end
+
+  @doc """
+  Gets number of completed and goal steps per week.
+  """
+  @spec steps_weekly(Client.t()) :: {:ok, list(Api.StepsWeekly.t()), Client.t()} | error()
+  @spec steps_weekly(Client.t(), end_date :: Date.t()) ::
+          {:ok, list(Api.StepsWeekly.t()), Client.t()} | error()
+  @spec steps_weekly(Client.t(), end_date :: Date.t(), weeks_count :: integer()) ::
+          {:ok, list(Api.StepsWeekly.t()), Client.t()} | error()
+  def steps_weekly(client, end_date \\ Date.utc_today(), weeks_count \\ 1) do
+    client |> steps_weekly_req(end_date, weeks_count) |> response_as_data(Api.StepsWeekly)
+  end
+
+  def steps_weekly_req(client, end_date \\ Date.utc_today(), weeks_count \\ 1) do
+    get(client,
+      url: "/usersummary-service/stats/steps/weekly/:end_date/:weeks_count",
+      path_params: [end_date: Date.to_iso8601(end_date), weeks_count: weeks_count]
     )
   end
 
@@ -147,6 +166,37 @@ defmodule Nimrag do
     get(client,
       url: ":prefix_url/:activity_id",
       path_params: path_params
+    )
+  end
+
+  @doc """
+  Returns user settings
+  """
+  @spec user_settings(Client.t()) :: {:ok, Api.UserSettings.t(), Client.t()} | error()
+  def user_settings(client),
+    do: client |> user_settings_req() |> response_as_data(Api.UserSettings)
+
+  def user_settings_req(client),
+    do: get(client, url: "/userprofile-service/userprofile/user-settings")
+
+  @doc """
+  Gets sleep data for a given day.
+  """
+  @spec sleep_daily(Client.t(), username :: String.t()) ::
+          {:ok, list(Api.SleepDaily.t()), Client.t()} | error()
+  @spec sleep_daily(Client.t(), username :: String.t(), date :: Date.t()) ::
+          {:ok, list(Api.SleepDaily.t()), Client.t()} | error()
+  @spec sleep_daily(Client.t(), username :: String.t(), date :: Date.t(), integer()) ::
+          {:ok, list(Api.SleepDaily.t()), Client.t()} | error()
+  def sleep_daily(client, username, date \\ Date.utc_today(), buffer_minutes \\ 60) do
+    client |> sleep_daily_req(username, date, buffer_minutes) |> response_as_data(Api.SleepDaily)
+  end
+
+  def sleep_daily_req(client, username, date \\ Date.utc_today(), buffer_minutes \\ 60) do
+    get(client,
+      url: "wellness-service/wellness/dailySleepData/:username",
+      params: [nonSleepBufferMinutes: buffer_minutes, date: Date.to_iso8601(date)],
+      path_params: [username: username]
     )
   end
 end

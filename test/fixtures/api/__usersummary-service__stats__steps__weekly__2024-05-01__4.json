@@ -1,0 +1,42 @@
+[
+  {
+    "calendarDate": "2024-04-04",
+    "values": {
+      "averageDistance": 20809.85714285714,
+      "averageSteps": 23066.285714285714,
+      "totalDistance": 145669.0,
+      "totalSteps": 161464.0,
+      "wellnessDataDaysCount": 7
+    }
+  },
+  {
+    "calendarDate": "2024-04-11",
+    "values": {
+      "averageDistance": 24847.714285714286,
+      "averageSteps": 26442.0,
+      "totalDistance": 173934.0,
+      "totalSteps": 185094.0,
+      "wellnessDataDaysCount": 7
+    }
+  },
+  {
+    "calendarDate": "2024-04-18",
+    "values": {
+      "averageDistance": 22184.85714285714,
+      "averageSteps": 24670.14285714286,
+      "totalDistance": 155294.0,
+      "totalSteps": 172691.0,
+      "wellnessDataDaysCount": 7
+    }
+  },
+  {
+    "calendarDate": "2024-04-25",
+    "values": {
+      "averageDistance": 23794.428571428572,
+      "averageSteps": 25655.571428571428,
+      "totalDistance": 166561.0,
+      "totalSteps": 179589.0,
+      "wellnessDataDaysCount": 7
+    }
+  }
+]

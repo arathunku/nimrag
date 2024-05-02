@@ -1,0 +1,5 @@
+# lefthook version: v1.6.10
+pre-commit:
+  commands:
+    check:
+      run: mix check

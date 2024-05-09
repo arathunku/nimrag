@@ -1,25 +1,50 @@
 defmodule Nimrag.Api.Activity do
   use Nimrag.Api.Data
+  alias Nimrag.Api.ActivityType
+
+  defmodule Summary do
+    @type t() :: %__MODULE__{
+            distance: float(),
+            duration: float(),
+            average_hr: float(),
+            max_hr: float(),
+            elevation_gain: float(),
+            elevation_loss: float()
+          }
+
+    defstruct ~w(
+    id distance duration average_hr max_hr elevation_gain elevation_loss
+  )a
+
+    def schematic() do
+      schema(__MODULE__, %{
+        field(:distance) => float(),
+        field(:duration) => float(),
+        {"maxHR", :max_hr} => float(),
+        {"averageHR", :average_hr} => float(),
+        field(:elevation_gain) => float(),
+        field(:elevation_loss) => float()
+      })
+    end
+  end
 
   @type t() :: %__MODULE__{
           id: integer(),
-          distance: float(),
-          duration: float(),
           activity_name: String.t(),
-          begin_at: DateTime.t(),
-          start_local_at: NaiveDateTime.t()
+          activity_type: ActivityType.t(),
+          summary: __MODULE__.Summary.t()
         }
 
-  defstruct ~w(id distance duration begin_at start_local_at activity_name)a
+  defstruct ~w(
+    id activity_name activity_type summary
+  )a
 
   def schematic() do
     schema(__MODULE__, %{
-      {"beginTimestamp", :begin_at} => timestamp_datetime(),
-      {"startTimeLocal", :start_local_at} => naive_datetime(),
       {"activityId", :id} => int(),
       field(:activity_name) => str(),
-      distance: float(),
-      duration: float()
+      {"activityTypeDTO", :activity_type} => ActivityType.schematic(),
+      {"summaryDTO", :summary} => __MODULE__.Summary.schematic()
     })
   end
 end

@@ -59,4 +59,21 @@ defmodule NimragTest do
     assert {:ok, %Nimrag.Api.SleepDaily{}, _client} =
              Nimrag.sleep_daily(client(), "arathunku", ~D|2024-05-01|, 60)
   end
+
+  test "#activity" do
+    Req.Test.stub(Nimrag.Api, fn conn ->
+      Req.Test.json(conn, read_response_fixture(conn))
+    end)
+
+    assert {:ok, %Nimrag.Api.Activity{}, _client} = Nimrag.activity(client(), 15_205_844_761)
+  end
+
+  test "#activity_details" do
+    Req.Test.stub(Nimrag.Api, fn conn ->
+      Req.Test.json(conn, read_response_fixture(conn))
+    end)
+
+    assert {:ok, %Nimrag.Api.ActivityDetails{}, _client} =
+             Nimrag.activity_details(client(), 15_205_844_761)
+  end
 end

@@ -191,7 +191,7 @@ defmodule Nimrag.Auth do
   defp submit_mfa(sso, cookie, credentials) do
     with {:ok, response} <- get_mfa(sso, cookie),
          {:ok, csrf_token} <- get_csrf_token(response),
-         {:ok, mfa_code} = Credentials.get_mfa(credentials),
+         {:ok, mfa_code} <- Credentials.get_mfa(credentials),
          {:ok, %{status: 302} = response} <- submit_mfa_req(sso, csrf_token, cookie, mfa_code) do
       uri = response |> get_location() |> URI.parse()
 

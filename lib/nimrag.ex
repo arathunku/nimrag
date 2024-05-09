@@ -83,9 +83,9 @@ defmodule Nimrag do
   end
 
   @doc """
-  Gets latestes activity
+  Gets latest activity
   """
-  @spec last_activity(Client.t()) :: {:ok, Api.Activity.t(), Client.t()} | any()
+  @spec last_activity(Client.t()) :: {:ok, Api.ActivityList.t(), Client.t()} | error()
   def last_activity(client) do
     case activities(client, 0, 1) do
       {:ok, [], _client} -> {:error, :not_found}
@@ -95,15 +95,37 @@ defmodule Nimrag do
   end
 
   @doc """
+  Gets activity with given ID.
+
+  Note: this doesn't return the same data structure as a list of activities!
+  """
+  @spec activity(Client.t(), integer()) :: {:ok, Api.Activity.t(), Client.t()} | error()
+  def activity(client, id), do: client |> activity_req(id) |> response_as_data(Api.Activity)
+
+  def activity_req(client, id),
+    do: get(client, url: "/activity-service/activity/:id", path_params: [id: id])
+
+  @doc """
+  Gets details for activitiy with given ID
+  """
+  @spec activity_details(Client.t(), integer()) ::
+          {:ok, Api.ActivityDetails.t(), Client.t()} | error()
+  def activity_details(client, id),
+    do: client |> activity_details_req(id) |> response_as_data(Api.ActivityDetails)
+
+  def activity_details_req(client, id),
+    do: get(client, url: "/activity-service/activity/:id/details", path_params: [id: id])
+
+  @doc """
   Gets activities
   """
-  @spec activities(Client.t()) :: {:ok, list(Api.Activity.t()), Client.t()} | error()
+  @spec activities(Client.t()) :: {:ok, list(Api.ActivityList.t()), Client.t()} | error()
   @spec activities(Client.t(), offset :: integer()) ::
-          {:ok, list(Api.Activity.t()), Client.t()} | error()
+          {:ok, list(Api.ActivityList.t()), Client.t()} | error()
   @spec activities(Client.t(), offset :: integer(), limit :: integer()) ::
-          {:ok, list(Api.Activity.t()), Client.t()} | error()
+          {:ok, list(Api.ActivityList.t()), Client.t()} | error()
   def activities(client, offset \\ 0, limit \\ 10) do
-    client |> activities_req(offset, limit) |> response_as_data(Api.Activity)
+    client |> activities_req(offset, limit) |> response_as_data(Api.ActivityList)
   end
 
   def activities_req(client, offset, limit) do
@@ -125,9 +147,9 @@ defmodule Nimrag do
 
   ```elixir
   {:ok, zip, client} = Nimrag.download_activity(client, 123, :raw)
-  {:ok, [file_path]} = :zip.unzip(zip, cwd: "/tmp")
+  {:ok, [{_filename, data}]} = :zip.extract(zip, [:memory])
   # Use https://github.com/arathunku/ext_fit to decode FIT file
-  {:ok, records} = file_path |> File.read!() |> ExtFit.Decode.decode()
+  {:ok, records} = data |> ExtFit.Decode.decode()
   ```
   """
 

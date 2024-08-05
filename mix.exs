@@ -65,7 +65,7 @@ defmodule Nimrag.MixProject do
 
   defp deps do
     [
-      {:req, "~> 0.4.14"},
+      {:req, "~> 0.5.6"},
       {:oauther, "~> 1.1"},
       {:jason, "~> 1.4"},
       {:recase, "~> 0.7"},

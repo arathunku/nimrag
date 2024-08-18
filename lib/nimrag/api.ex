@@ -95,12 +95,13 @@ defmodule Nimrag.Api do
         )
 
       {:error, reason} ->
-        {Req.Request.halt(req, :oauth2_token_refresh_error), {:oauth2_token_refresh_error, reason}}
+        {Req.Request.halt(req, RuntimeError.exception("oauth2 token refresh error")),
+         {:oauth2_token_refresh_error, reason}}
     end
   end
 
   defp connectapi_auth(_, req) do
-    {Req.Request.halt(req, :invalid_request_host), :invalid_request_host}
+    {Req.Request.halt(req, RuntimeError.exception("invalid request host")), :invalid_request_host}
   end
 
   defp rate_limit(req) do
@@ -117,7 +118,7 @@ defmodule Nimrag.Api do
             req
 
           {:deny, limit} ->
-            {Req.Request.halt(req, :rate_limit), {:rate_limit, limit}}
+            {Req.Request.halt(req, RuntimeError.exception("rate limit")), {:rate_limit, limit}}
         end
 
       false ->

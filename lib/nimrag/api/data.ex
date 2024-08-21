@@ -26,11 +26,14 @@ defmodule Nimrag.Api.Data do
     end
   end
 
-  def timestamp_datetime() do
+  def timestamp_as_datetime() do
     raw(
       fn
-        i, :to -> is_number(i) and match?({:ok, _}, DateTime.from_unix(i, :millisecond))
-        i, :from -> match?(%DateTime{}, i)
+        i, :to ->
+          is_number(i) and match?({:ok, _}, DateTime.from_unix(i, :millisecond))
+
+        i, :from ->
+          match?(%DateTime{}, i)
       end,
       transform: fn
         i, :to ->
@@ -39,6 +42,28 @@ defmodule Nimrag.Api.Data do
 
         i, :from ->
           DateTime.to_unix(i, :millisecond)
+      end
+    )
+  end
+
+  def timestamp_as_naive_datetime() do
+    raw(
+      fn
+        i, :to ->
+          is_number(i) and
+            match?({:ok, _}, DateTime.from_unix(i, :millisecond))
+
+        i, :from ->
+          match?(%NaiveDateTime{}, i)
+      end,
+      transform: fn
+        i, :to ->
+          {:ok, dt} = DateTime.from_unix(i, :millisecond)
+          DateTime.to_naive(dt)
+
+        v, :from ->
+          DateTime.from_naive(v, "Etc/UTC")
+          |> DateTime.to_unix(:millisecond)
       end
     )
   end
@@ -56,6 +81,48 @@ defmodule Nimrag.Api.Data do
 
         i, :from ->
           NaiveDateTime.to_iso8601(i)
+      end
+    )
+  end
+
+  def gmt_timestamp_as_datetime() do
+    raw(
+      fn
+        i, :to ->
+          is_binary(i) and
+            match?({:ok, _}, NaiveDateTime.from_iso8601(i) |> DateTime.from_naive!("Etc/UTC"))
+
+        i, :from ->
+          match?(%NaiveDateTime{}, i)
+      end,
+      transform: fn
+        i, :to ->
+          {:ok, dt} = NaiveDateTime.from_iso8601(i)
+          DateTime.from_naive!(dt, "Etc/UTC")
+
+        i, :from ->
+          DateTime.to_iso8601(i)
+      end
+    )
+  end
+
+  def gmt_datetime_as_datetime() do
+    raw(
+      fn
+        i, :to ->
+          is_binary(i) and
+            match?({:ok, _}, NaiveDateTime.from_iso8601!(i) |> DateTime.from_naive("Etc/UTC"))
+
+        i, :from ->
+          match?(%NaiveDateTime{}, i)
+      end,
+      transform: fn
+        i, :to ->
+          {:ok, dt} = NaiveDateTime.from_iso8601(i)
+          DateTime.from_naive!(dt, "Etc/UTC")
+
+        i, :from ->
+          DateTime.to_iso8601(i)
       end
     )
   end

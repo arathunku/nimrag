@@ -100,7 +100,8 @@ defmodule Nimrag do
   Note: this doesn't return the same data structure as a list of activities!
   """
   @spec activity(Client.t(), integer()) :: {:ok, Api.Activity.t(), Client.t()} | error()
-  def activity(client, id), do: client |> activity_req(id) |> response_as_data(Api.Activity)
+  def activity(client, id) when is_integer(id) or is_bitstring(id),
+    do: client |> activity_req(id) |> response_as_data(Api.Activity)
 
   def activity_req(client, id),
     do: get(client, url: "/activity-service/activity/:id", path_params: [id: id])
@@ -110,7 +111,7 @@ defmodule Nimrag do
   """
   @spec activity_details(Client.t(), integer()) ::
           {:ok, Api.ActivityDetails.t(), Client.t()} | error()
-  def activity_details(client, id),
+  def activity_details(client, id) when is_integer(id) or is_bitstring(id),
     do: client |> activity_details_req(id) |> response_as_data(Api.ActivityDetails)
 
   def activity_details_req(client, id),
@@ -124,7 +125,7 @@ defmodule Nimrag do
           {:ok, list(Api.ActivityList.t()), Client.t()} | error()
   @spec activities(Client.t(), offset :: integer(), limit :: integer()) ::
           {:ok, list(Api.ActivityList.t()), Client.t()} | error()
-  def activities(client, offset \\ 0, limit \\ 10) do
+  def activities(client, offset \\ 0, limit \\ 10) when is_integer(offset) and is_integer(limit) do
     client |> activities_req(offset, limit) |> response_as_data(Api.ActivityList)
   end
 
@@ -163,7 +164,8 @@ defmodule Nimrag do
           {:ok, binary(), Client.t()} | error()
   @spec download_activity(Client.t(), activity_id :: integer(), :csv) ::
           {:ok, binary(), Client.t()} | error()
-  def download_activity(client, activity_id, :raw) do
+  def download_activity(client, activity_id, :raw)
+      when is_integer(activity_id) or is_bitstring(activity_id) do
     with {:ok, %{body: body, status: 200}, client} <-
            download_activity_req(client,
              prefix_url: "download-service/files/activity",
@@ -210,7 +212,8 @@ defmodule Nimrag do
           {:ok, list(Api.SleepDaily.t()), Client.t()} | error()
   @spec sleep_daily(Client.t(), username :: String.t(), date :: Date.t(), integer()) ::
           {:ok, list(Api.SleepDaily.t()), Client.t()} | error()
-  def sleep_daily(client, username, date \\ Date.utc_today(), buffer_minutes \\ 60) do
+  def sleep_daily(client, username, date \\ Date.utc_today(), buffer_minutes \\ 60)
+      when is_bitstring(username) do
     client |> sleep_daily_req(username, date, buffer_minutes) |> response_as_data(Api.SleepDaily)
   end
 

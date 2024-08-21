@@ -1,6 +1,6 @@
 # Nimrag
 
-[![Actions Status](https://github.com/arathunku/nimrag/actions/workflows/elixir-build-and-test.yml/badge.svg)](https://github.com/arathunku/nimrag/actions/workflows/elixir-build-and-test.yml) 
+[![Actions Status](https://github.com/arathunku/nimrag/actions/workflows/elixir-build-and-test.yml/badge.svg)](https://github.com/arathunku/nimrag/actions/workflows/elixir-build-and-test.yml)
 [![Hex.pm](https://img.shields.io/hexpm/v/nimrag.svg?style=flat)](https://hex.pm/packages/nimrag)
 [![Documentation](https://img.shields.io/badge/hex-docs-lightgreen.svg?style=flat)](https://hexdocs.pm/nimrag)
 [![License](https://img.shields.io/hexpm/l/nimrag.svg?style=flat)](https://github.com/arathunku/nimrag/blob/main/LICENSE.md)
@@ -34,11 +34,11 @@ https://github.com/arathunku/nimrag/assets/749393/7246f688-4820-4276-96de-5d8ed7
 Garmin doesn't have any official public API for individuals, only businesses.
 It means we're required to use username, password and (optionally) MFA code to obtain
 OAuth tokens. OAuth1 token is valid for up to a year and it's used to generate
-OAuth2 token that expires quickly, OAuth2 token is used for making the API calls. 
-After OAuth1 token expires, we need to repeat the authentication process. 
+OAuth2 token that expires quickly, OAuth2 token is used for making the API calls.
+After OAuth1 token expires, we need to repeat the authentication process.
 
-Please see `Nimrag.Auth` docs for more details about authentication, 
-and see `Nimrag.Credentials` on how to avoid providing plaintext credentials directly in code. 
+Please see `Nimrag.Auth` docs for more details about authentication,
+and see `Nimrag.Credentials` on how to avoid providing plaintext credentials directly in code.
 
 ```elixir
 # If you're using it for the first time, we need to get OAuth Tokens first.
@@ -63,7 +63,10 @@ client = Nimrag.Client.new() |> Nimrag.Client.with_auth(Nimrag.Credentials.read_
 {:ok, %Nimrag.Api.Profile{} = profile, client} = Nimrag.profile(client)
 
 # Fetch your latest activity
-{:ok, %Nimrag.Api.Activity{} = activity, client} = Nimrag.last_activity(client)
+{:ok, %Nimrag.Api.ActivityList{} = activity, client} = Nimrag.last_activity(client)
+
+# Fetch your latest activity details
+{:ok, %Nimrag.Api.ActivityDetails{} = activity, client} = Nimrag.activity_details(client, activity.activity_id)
 
 # Call at the end of the session to cache new OAuth2 token
 :ok = Nimrag.Credentials.write_fs_oauth2_token(client)
@@ -86,7 +89,7 @@ automatically updated when it's near expiration.
 There's at this moment no extensive coverage of API endpoints, feel free to submit
 PR with new structs and endpoints, see [Contributing](#contributing).
 
-### Rate limit 
+### Rate limit
 
 By default, Nimrag uses [Hammer](https://github.com/ExHammer/hammer) for rate limiting requests.
 If you are already using `Hammer`, you can configure backend key via config.
@@ -111,7 +114,7 @@ You can discover new endpoints by setting up [mitmproxy](https://mitmproxy.org/)
 traffic from mobile app or website. You can also take a look at
 [python-garminconnect](https://github.com/cyberjunky/python-garminconnect/blob/master/garminconnect/__init__.py).
 
-For local setup, the project has minimal dependencies and is easy to install 
+For local setup, the project has minimal dependencies and is easy to install
 
 ```sh
 # fork and clone the repo
@@ -141,6 +144,16 @@ $ mix check
 1. Add tests for new function in [`test/nimrag_test.exs`]
 1. Define new [`Schematic`](https://github.com/mhanberg/schematic) schema in `Nimrag.Api`,
   and ensure all tests pass.
+
+
+### Data structure
+
+- Any method returning API's data returns it as a struct, with known fields.
+- When Garmin removes any of the fields, they'll be removed here too.
+- Garmin API is consistenly inconsistent where it comes to timestamps - sometimes they're formatted,
+sometimes they're unix timestamp, even for the fields on the same name. Nimrag changes all datetimes
+without timezone into NaiveDateTime "as is", and all "GMT" timestamps by Garmin are DateTime with Etc/UTC
+timezone. All fields with NaiveDateTime/DateTime end with `_at`
 
 ## License
 

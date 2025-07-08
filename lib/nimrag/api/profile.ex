@@ -152,7 +152,7 @@ defmodule Nimrag.Api.Profile do
       field(:favorite_activity_types) => list(str()),
       field(:favorite_cycling_activity_types) => list(str()),
       field(:full_name) => str(),
-      field(:garmin_guid) => nullable(str()),
+      optional(field(:garmin_guid)) => nullable(str()),
       field(:id) => int(),
       field(:level_is_viewed) => bool(),
       field(:level_point_threshold) => int(),

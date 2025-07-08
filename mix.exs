@@ -65,11 +65,11 @@ defmodule Nimrag.MixProject do
 
   defp deps do
     [
-      {:req, "~> 0.5.0"},
+      {:req, "~> 0.5.10"},
       {:oauther, "~> 1.1"},
       {:jason, "~> 1.4"},
       {:recase, "~> 0.7"},
-      {:schematic, "~> 0.3"},
+      {:schematic, "~> 0.5.1"},
       {:hammer, "~> 6.2"},
       {:plug, "~> 1.0", only: [:test]},
       {:excoveralls, "~> 0.18.1", only: [:dev, :test], runtime: false},

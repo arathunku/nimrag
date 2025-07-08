@@ -9,10 +9,10 @@ defmodule Nimrag.Api.SleepDaily do
             calendar_date: Date.t(),
             sleep_time_seconds: integer(),
             nap_time_seconds: integer(),
-            sleep_start_timestamp_local: DateTime.t(),
-            sleep_end_timestamp_local: DateTime.t()
+            sleep_start_local_at: NaiveDateTime.t(),
+            sleep_end_local_at: NaiveDateTime.t()
           }
-    defstruct ~w(id calendar_date sleep_time_seconds nap_time_seconds sleep_start_timestamp_local sleep_end_timestamp_local)a
+    defstruct ~w(id calendar_date sleep_time_seconds nap_time_seconds sleep_start_local_at sleep_end_local_at)a
 
     def schematic() do
       schema(__MODULE__, %{
@@ -20,8 +20,8 @@ defmodule Nimrag.Api.SleepDaily do
         field(:calendar_date) => date(),
         field(:sleep_time_seconds) => int(),
         field(:nap_time_seconds) => int(),
-        field(:sleep_start_timestamp_local) => timestamp_datetime(),
-        field(:sleep_end_timestamp_local) => timestamp_datetime()
+        {"sleepStartTimestampLocal", :sleep_start_local_at} => timestamp_as_naive_datetime()
+        # {"sleepEndTimestampLocal", :sleep_end_local_at} => timestamp_as_naive_datetime()
       })
     end
   end
@@ -30,16 +30,16 @@ defmodule Nimrag.Api.SleepDaily do
     use Nimrag.Api.Data
 
     @type t() :: %__MODULE__{
-            start_gmt: DateTime.t(),
-            end_gmt: DateTime.t(),
+            start_at: DateTime.t(),
+            end_at: DateTime.t(),
             activity_level: float()
           }
-    defstruct ~w(start_gmt end_gmt activity_level)a
+    defstruct ~w(start_at end_at activity_level)a
 
     def schematic() do
       schema(__MODULE__, %{
-        {"startGMT", :start_gmt} => naive_datetime(),
-        {"endGMT", :end_gmt} => naive_datetime(),
+        {"startGMT", :start_at} => gmt_datetime_as_datetime(),
+        {"endGMT", :end_at} => gmt_datetime_as_datetime(),
         field(:activity_level) => float()
       })
     end

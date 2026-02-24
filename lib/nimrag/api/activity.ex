@@ -22,8 +22,8 @@ defmodule Nimrag.Api.Activity do
         field(:duration) => float(),
         {"maxHR", :max_hr} => float(),
         {"averageHR", :average_hr} => float(),
-        field(:elevation_gain) => float(),
-        field(:elevation_loss) => float()
+        field(:elevation_gain) => nullable(float()),
+        field(:elevation_loss) => nullable(float()),
       })
     end
   end

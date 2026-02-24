@@ -11,8 +11,8 @@ defmodule Nimrag.Api.ActivityList do
           start_local_at: NaiveDateTime.t(),
           average_hr: float(),
           max_hr: float(),
-          elevation_gain: float(),
-          elevation_loss: float(),
+          elevation_gain: nil | float(),
+          elevation_loss: nil | float(),
           description: nil | String.t(),
           activity_type: ActivityType.t()
         }
@@ -32,9 +32,9 @@ defmodule Nimrag.Api.ActivityList do
       :duration => float(),
       {"averageHR", :average_hr} => float(),
       {"maxHR", :max_hr} => float(),
-      field(:elevationGain) => float(),
-      field(:elevationLoss) => float(),
-      field(:description) => nullable(str()),
+      optional(field(:elevationGain)) => nullable(float()),
+      optional(field(:elevationLoss)) => nullable(float()),
+      optional(field(:description)) => nullable(str()),
       field(:activity_type) => ActivityType.schematic()
     })
   end

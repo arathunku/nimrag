@@ -24,12 +24,6 @@ defmodule Nimrag.MixProject do
       """,
       aliases: aliases(),
       test_coverage: [tool: ExCoveralls],
-      preferred_cli_env: [
-        check: :test,
-        coveralls: :test,
-        "coveralls.detail": :test,
-        "coveralls.html": :test
-      ],
       dialyzer: [
         ignore_warnings: ".dialyzer_ignore.exs",
         plt_file: {:no_warn, "priv/plts/dialyzer.plt"},
@@ -60,6 +54,17 @@ defmodule Nimrag.MixProject do
     ]
   end
 
+  def cli do
+    [
+      preferred_envs: [
+        check: :test,
+        coveralls: :test,
+        "coveralls.detail": :test,
+        "coveralls.html": :test
+      ]
+    ]
+  end
+
   defp elixirc_paths(:test), do: ["lib", "test/support"]
   defp elixirc_paths(_), do: ["lib"]
 
@@ -75,7 +80,7 @@ defmodule Nimrag.MixProject do
       {:excoveralls, "~> 0.18.1", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.31", only: :dev, runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
-      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:credo, "~> 1.7.11", only: [:dev, :test], runtime: false},
       {:styler, "~> 0.11", only: [:dev, :test], runtime: false}
     ]
   end

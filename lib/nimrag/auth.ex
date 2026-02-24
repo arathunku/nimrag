@@ -295,7 +295,7 @@ defmodule Nimrag.Auth do
 
   defp signin_req(sso, %Req.Response{} = prev_resp) do
     sso.client
-    |> Req.Request.put_header("cookie", get_cookie(prev_resp))
+    |> Req.Request.put_header("cookie", Enum.join(get_cookie(prev_resp), "; "))
     |> Req.Request.put_header("referer", "#{sso.url}/embed")
     |> Req.get(
       url: "/signin",
@@ -307,7 +307,7 @@ defmodule Nimrag.Auth do
   defp submit_signin_req(sso, %Req.Response{} = prev_resp, credentials) do
     with {:ok, csrf_token} <- get_csrf_token(prev_resp) do
       sso.client
-      |> Req.Request.put_header("cookie", get_cookie(prev_resp))
+      |> Req.Request.put_header("cookie", Enum.join(get_cookie(prev_resp), "; "))
       |> Req.Request.put_header("referer", "#{sso.url}/signin")
       |> Req.post(
         url: "/signin",

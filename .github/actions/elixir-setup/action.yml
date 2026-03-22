@@ -3,11 +3,9 @@ description: Checks out the code, configures Elixir, fetches dependencies, and m
 inputs:
   elixir-version:
     required: true
-    type: string
     description: Elixir version to set up
   otp-version:
     required: true
-    type: string
     description: OTP version to set up
   #################################################################
   # Everything below this line is optional.
@@ -18,32 +16,26 @@ inputs:
   #################################################################
   build-deps:
     required: false
-    type: boolean
-    default: true
+    default: 'true'
     description: True if we should compile dependencies
   build-app:
     required: false
-    type: boolean
-    default: true
+    default: 'true'
     description: True if we should compile the application itself
   build-flags:
     required: false
-    type: string
     default: '--all-warnings'
     description: Flags to pass to mix compile
   install-rebar:
     required: false
-    type: boolean
-    default: true
+    default: 'true'
     description: By default, we will install Rebar (mix local.rebar --force).
   install-hex:
     required: false
-    type: boolean
-    default: true
+    default: 'true'
     description: By default, we will install Hex (mix local.hex --force).
   cache-key:
     required: false
-    type: string
     default: 'v1'
     description: If you need to reset the cache for some reason, you can change this key.
 outputs:
@@ -64,7 +56,7 @@ runs:
         otp-version: ${{ inputs.otp-version }}
 
     - name: Get deps cache
-      uses: actions/cache@v2
+      uses: actions/cache@v4
       with:
         path: deps/
         key: deps-${{ inputs.cache-key }}-${{ runner.os }}-${{ hashFiles('**/mix.lock') }}
@@ -72,7 +64,7 @@ runs:
           deps-${{ inputs.cache-key }}-${{ runner.os }}-
 
     - name: Get build cache
-      uses: actions/cache@v2
+      uses: actions/cache@v4
       id: build-cache
       with:
         path: _build/${{env.MIX_ENV}}/
@@ -81,7 +73,7 @@ runs:
           build-${{ inputs.cache-key }}-${{ runner.os }}-${{ inputs.otp-version }}-${{ inputs.elixir-version }}-${{ env.MIX_ENV }}-
 
     - name: Get Hex cache
-      uses: actions/cache@v2
+      uses: actions/cache@v4
       id: hex-cache
       with:
         path: ~/.hex

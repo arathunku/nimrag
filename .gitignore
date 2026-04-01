@@ -30,3 +30,4 @@ priv/plts
 # dot examples are not commited until they're ready!
 # makes it nicer to live test some APIs when local scripts
 examples/.*
+.DS_Store

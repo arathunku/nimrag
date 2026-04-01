@@ -29,6 +29,30 @@ defmodule Nimrag.Api do
     end
   end
 
+  @spec put(Client.t(), Keyword.t()) ::
+          {:ok, Req.Response.t(), Client.t()} | {:error, Req.Response.t()}
+  def put(%Client{} = client, opts) do
+    client
+    |> req(opts)
+    |> Req.put()
+    |> case do
+      {:ok, resp} -> {:ok, resp, Req.Response.get_private(resp, :client)}
+      {:error, error} -> {:error, error}
+    end
+  end
+
+  @spec post(Client.t(), Keyword.t()) ::
+          {:ok, Req.Response.t(), Client.t()} | {:error, Req.Response.t()}
+  def post(%Client{} = client, opts) do
+    client
+    |> req(opts)
+    |> Req.post()
+    |> case do
+      {:ok, resp} -> {:ok, resp, Req.Response.get_private(resp, :client)}
+      {:error, error} -> {:error, error}
+    end
+  end
+
   @spec response_as_data({:ok, Req.Response.t(), Client.t()}, data_module :: atom()) ::
           {:ok, any(), Client.t()} | {:error, Req.Response.t()}
   @spec response_as_data({:error, any()}, data_module :: atom()) :: {:error, any()}

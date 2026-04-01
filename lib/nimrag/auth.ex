@@ -80,7 +80,7 @@ defmodule Nimrag.Auth do
 
     now = DateTime.utc_now()
 
-    {:ok, response} =
+    result =
       client.connectapi
       |> Req.Request.put_header("Authorization", oauth)
       |> Req.get(
@@ -89,18 +89,25 @@ defmodule Nimrag.Auth do
         user_agent: @mobile_user_agent
       )
 
-    %{"oauth_token" => token, "oauth_token_secret" => secret} =
-      query = URI.decode_query(response.body)
-
-    {:ok,
-     %OAuth1Token{
-       oauth_token: token,
-       oauth_token_secret: secret,
-       domain: client.domain,
-       mfa_token: query["mfa_token"] || "",
-       # TODO: OAuth1Token, Is that 365 days true with MFA active? We'll wait and see!
-       expires_at: DateTime.add(now, 365, :day)
-     }}
+    with {:ok, %{status: 200} = response} <- result,
+         query = URI.decode_query(response.body),
+         {:ok, token} <- Map.fetch(query, "oauth_token"),
+         {:ok, secret} <- Map.fetch(query, "oauth_token_secret") do
+      {:ok,
+       %OAuth1Token{
+         oauth_token: token,
+         oauth_token_secret: secret,
+         domain: client.domain,
+         mfa_token: query["mfa_token"] || "",
+         # TODO: OAuth1Token, Is that 365 days true with MFA active? We'll wait and see!
+         expires_at: DateTime.add(now, 365, :day)
+       }}
+    else
+      {:ok, %{status: 429} = response} -> {:error, {:rate_limited, response}}
+      {:ok, response} -> {:error, {:get_oauth1_token, response}}
+      {:error, _} = error -> error
+      :error -> {:error, :invalid_oauth1_response}
+    end
   end
 
   def maybe_refresh_oauth2_token(%Client{} = client, opts \\ []) do

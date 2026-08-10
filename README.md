@@ -1,3 +1,5 @@
+
+
 # Nimrag
 
 [![Actions Status](https://github.com/arathunku/nimrag/actions/workflows/elixir-build-and-test.yml/badge.svg)](https://github.com/arathunku/nimrag/actions/workflows/elixir-build-and-test.yml) 
@@ -56,14 +58,14 @@ credentials = Nimrag.Credentials.new("username", "password")
 Use functions from `Nimrag` to fetch data from Garmin's API.
 
 ```elixir
-# Restore previously cached in ~/.nimrag OAuth tokens
+# Restore previously cached in ~/.config/nimrag OAuth tokens
 client = Nimrag.Client.new() |> Nimrag.Client.with_auth(Nimrag.Credentials.read_oauth_tokens!())
 
 # Fetch your profile
 {:ok, %Nimrag.Api.Profile{} = profile, client} = Nimrag.profile(client)
 
 # Fetch your latest activity
-{:ok, %Nimrag.Api.Activity{} = activity, client} = Nimrag.last_activity(client)
+{:ok, %Nimrag.Api.ActivityList{} = activity, client} = Nimrag.last_activity(client)
 
 # Call at the end of the session to cache new OAuth2 token
 :ok = Nimrag.Credentials.write_fs_oauth2_token(client)

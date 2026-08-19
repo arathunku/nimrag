@@ -1,0 +1,16 @@
+{
+  "source": "gc-api",
+  "uuid": "challenge-1",
+  "adHocChallengeName": "Steps Challenge",
+  "adHocChallengeDesc": "Steps challenge",
+  "players": [
+    {
+      "ranking": 1,
+      "userProfileId": 71391585,
+      "ownerDisplayName": "owner-uuid",
+      "displayName": "Pavel",
+      "totalNumber": 1200,
+      "todayNumber": 300
+    }
+  ]
+}

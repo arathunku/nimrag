@@ -34,23 +34,19 @@ defimpl Inspect, for: Nimrag.OAuth2Token do
   alias Nimrag.OAuth2Token
   import Inspect.Algebra
 
-  def inspect(
-        %OAuth2Token{access_token: access_token, refresh_token: refresh_token} = token,
-        opts
-      ) do
-    details =
-      Inspect.List.inspect(
-        [
-          access_token: String.slice(access_token || "", 0, 5) <> "...",
-          refresh_token: String.slice(refresh_token || "", 0, 5) <> "...",
-          expires_at: token.expires_at,
-          expired?: OAuth2Token.expired?(token),
-          refresh_token_expires_at: token.refresh_token_expires_at,
-          refresh_token_expired?: OAuth2Token.refresh_token_expired?(token)
-        ],
-        opts
-      )
+  def inspect(%OAuth2Token{} = token, opts) do
+    fields = [
+      access_token: redact(token.access_token),
+      refresh_token: redact(token.refresh_token),
+      expires_at: token.expires_at,
+      expired?: OAuth2Token.expired?(token),
+      refresh_token_expires_at: token.refresh_token_expires_at,
+      refresh_token_expired?: OAuth2Token.refresh_token_expired?(token)
+    ]
 
-    concat(["#Nimrag.OAuth2Token<", details, ">"])
+    container_doc("#Nimrag.OAuth2Token<", fields, ">", opts, &Inspect.List.keyword/2)
   end
+
+  defp redact(value) when is_binary(value), do: String.slice(value, 0, 5) <> "..."
+  defp redact(_value), do: "..."
 end

@@ -1,0 +1,45 @@
+{
+  "mostRecentTrainingStatus": {
+    "latestTrainingStatusData": {
+      "123456": {
+        "calendarDate": "2024-05-01",
+        "primaryTrainingDevice": true,
+        "trainingStatus": 3,
+        "trainingStatusFeedbackPhrase": "PRODUCTIVE",
+        "fitnessTrend": 1,
+        "sport": "RUNNING",
+        "acuteTrainingLoadDTO": {
+          "dailyTrainingLoadAcute": 82.4,
+          "dailyTrainingLoadChronic": 71.1,
+          "dailyAcuteChronicWorkloadRatio": 1.16,
+          "acwrStatus": "OPTIMAL",
+          "acwrPercent": 58,
+          "minTrainingLoadChronic": 50.0,
+          "maxTrainingLoadChronic": 90.0
+        }
+      }
+    }
+  },
+  "mostRecentVO2Max": {
+    "generic": {
+      "vo2MaxValue": 52.0,
+      "vo2MaxPreciseValue": 52.3
+    },
+    "cycling": {
+      "vo2MaxValue": 48.0,
+      "vo2MaxPreciseValue": 48.1
+    }
+  },
+  "mostRecentTrainingLoadBalance": {
+    "metricsTrainingLoadBalanceDTOMap": {
+      "123456": {
+        "primaryTrainingDevice": true,
+        "calendarDate": "2024-05-01",
+        "monthlyLoadAerobicLow": 210.5,
+        "monthlyLoadAerobicHigh": 95.2,
+        "monthlyLoadAnaerobic": 40.0,
+        "trainingBalanceFeedbackPhrase": "BALANCED"
+      }
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "hrvSummary": {
+    "calendarDate": "2024-05-01",
+    "weeklyAvg": 48,
+    "lastNightAvg": 50,
+    "lastNight5MinHigh": 62,
+    "status": "BALANCED",
+    "feedbackPhrase": "HRV_BALANCED_AND_RECOVERED",
+    "baseline": {
+      "balancedLow": 38,
+      "balancedUpper": 58,
+      "lowUpper": 38
+    }
+  },
+  "hrvReadings": [
+    {
+      "readingTimeLocal": "2024-04-30T23:15:00.0",
+      "hrvValue": 48
+    }
+  ]
+}

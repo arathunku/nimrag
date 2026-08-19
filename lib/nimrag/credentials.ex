@@ -308,24 +308,21 @@ defmodule Nimrag.Credentials do
 end
 
 defimpl Inspect, for: Nimrag.Credentials do
-  alias Nimrag.Credentials
   import Inspect.Algebra
 
-  def inspect(
-        %Credentials{username: username},
-        opts
-      ) do
-    details =
-      Inspect.List.inspect(
-        [
-          username:
-            (username |> String.split("@", trim: true) |> List.first() |> String.slice(0, 5)) <>
-              "...",
-          password: "*****"
-        ],
-        opts
-      )
+  def inspect(%Nimrag.Credentials{username: username}, opts) do
+    fields = [
+      username: redact_username(username),
+      password: "*****"
+    ]
 
-    concat(["#Nimrag.Credentials<", details, ">"])
+    container_doc("#Nimrag.Credentials<", fields, ">", opts, &Inspect.List.keyword/2)
   end
+
+  defp redact_username(username) when is_binary(username) do
+    local = username |> String.split("@", trim: true) |> List.first() || ""
+    String.slice(local, 0, 5) <> "..."
+  end
+
+  defp redact_username(_username), do: "..."
 end

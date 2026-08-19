@@ -23,21 +23,17 @@ defimpl Inspect, for: Nimrag.OAuth1Token do
   alias Nimrag.OAuth1Token
   import Inspect.Algebra
 
-  def inspect(
-        %OAuth1Token{oauth_token: oauth_token, mfa_token: mfa_token} = token,
-        opts
-      ) do
-    details =
-      Inspect.List.inspect(
-        [
-          oauth_token: String.slice(oauth_token || "", 0, 5) <> "...",
-          mfa_token: String.slice(mfa_token || "", 0, 5) <> "...",
-          expired?: OAuth1Token.expired?(token),
-          expires_at: token.expires_at
-        ],
-        opts
-      )
+  def inspect(%OAuth1Token{} = token, opts) do
+    fields = [
+      oauth_token: redact(token.oauth_token),
+      mfa_token: redact(token.mfa_token),
+      expired?: OAuth1Token.expired?(token),
+      expires_at: token.expires_at
+    ]
 
-    concat(["#Nimrag.OAuth1Token<", details, ">"])
+    container_doc("#Nimrag.OAuth1Token<", fields, ">", opts, &Inspect.List.keyword/2)
   end
+
+  defp redact(value) when is_binary(value), do: String.slice(value, 0, 5) <> "..."
+  defp redact(_value), do: "..."
 end

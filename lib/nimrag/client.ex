@@ -129,7 +129,7 @@ defimpl Inspect, for: Nimrag.Client do
         opts
       ) do
     details =
-      Inspect.List.inspect(
+      to_doc(
         [
           domain: client.domain,
           oauth1_token: client.oauth1_token && "#Nimrag.OAuth1Token<...>",

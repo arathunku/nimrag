@@ -1,0 +1,17 @@
+{
+  "uuid": "challenge-1",
+  "adHocChallengeName": "Steps Challenge",
+  "adHocChallengeDesc": "Steps challenge",
+  "startDate": "2026-02-10T00:00:00.0",
+  "endDate": "2026-02-16T23:59:59.0",
+  "players": [
+    {
+      "ranking": 1,
+      "userProfileId": 71391585,
+      "ownerDisplayName": "owner-uuid",
+      "displayName": "Pavel",
+      "totalNumber": 1200,
+      "todayNumber": 300
+    }
+  ]
+}

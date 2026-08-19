@@ -25,6 +25,7 @@ defmodule Nimrag.Api do
     |> Req.get()
     |> case do
       {:ok, %{status: 200} = resp} -> {:ok, resp, Req.Response.get_private(resp, :client)}
+      {:ok, %Req.Response{} = resp} -> {:error, resp}
       {:error, error} -> {:error, error}
     end
   end

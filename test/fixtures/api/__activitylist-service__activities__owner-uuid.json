@@ -1,0 +1,17 @@
+{
+  "activityList": [
+    {
+      "activityId": 21894464242,
+      "activityName": "Ski",
+      "activityType": {"typeKey": "cross_country_skiing_ws"},
+      "startTimeLocal": "2026-02-17 13:51:34",
+      "startTimeGMT": "2026-02-17 10:51:34",
+      "duration": 826.68,
+      "distance": 1815.58,
+      "calories": 135.0,
+      "ownerId": 71391585,
+      "ownerDisplayName": "owner-uuid",
+      "ownerFullName": "Pavel"
+    }
+  ]
+}

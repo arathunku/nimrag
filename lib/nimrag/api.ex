@@ -23,11 +23,16 @@ defmodule Nimrag.Api do
     client
     |> req(opts)
     |> Req.get()
-    |> case do
-      {:ok, %{status: 200} = resp} -> {:ok, resp, Req.Response.get_private(resp, :client)}
-      {:ok, %Req.Response{} = resp} -> {:error, resp}
-      {:error, error} -> {:error, error}
-    end
+    |> decode_response([200])
+  end
+
+  @spec post(Client.t(), Keyword.t()) ::
+          {:ok, Req.Response.t(), Client.t()} | {:error, Req.Response.t()}
+  def post(%Client{} = client, opts) do
+    client
+    |> req(opts)
+    |> Req.post()
+    |> decode_response([200, 201])
   end
 
   @spec response_as_data({:ok, Req.Response.t(), Client.t()}, data_module :: atom()) ::
@@ -61,6 +66,16 @@ defmodule Nimrag.Api do
 
     first_error || {:ok, data}
   end
+
+  defp decode_response({:ok, %{status: status} = resp}, ok_statuses) do
+    if status in ok_statuses do
+      {:ok, resp, Req.Response.get_private(resp, :client)}
+    else
+      {:error, resp}
+    end
+  end
+
+  defp decode_response({:error, error}, _ok_statuses), do: {:error, error}
 
   defp req(%Client{} = client, opts) do
     if client.oauth2_token == nil do

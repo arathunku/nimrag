@@ -1,7 +1,7 @@
 defmodule Nimrag do
   alias Nimrag.Api
   alias Nimrag.Client
-  import Nimrag.Api, only: [get: 2, response_as_data: 2]
+  import Nimrag.Api, only: [get: 2, post: 2, response_as_data: 2]
 
   @type error() :: {:error, any}
 
@@ -434,6 +434,76 @@ defmodule Nimrag do
     )
   end
 
+  @doc """
+  Uploads a structured workout to the Garmin workout library.
+  """
+  @spec upload_workout(Client.t(), map()) :: {:ok, map(), Client.t()} | error()
+  def upload_workout(client, payload) when is_map(payload) do
+    with {:ok, %Req.Response{body: body}, client} <- upload_workout_req(client, payload),
+         true <- is_map(body) do
+      {:ok, body, client}
+    else
+      {:ok, %Req.Response{body: body}, _client} -> {:error, {:invalid_response, body}}
+      false -> {:error, :invalid_response}
+      error -> error
+    end
+  end
+
+  @spec upload_workout_req(Client.t(), map()) ::
+          {:ok, Req.Response.t(), Client.t()} | {:error, Req.Response.t()}
+  def upload_workout_req(client, payload) when is_map(payload) do
+    post(client, url: "/workout-service/workout", json: payload)
+  end
+
+  @doc """
+  Schedules an existing workout library item onto a calendar date.
+  """
+  @spec schedule_workout(Client.t(), integer(), Date.t()) :: {:ok, map(), Client.t()} | error()
+  def schedule_workout(client, workout_id, %Date{} = date)
+      when is_integer(workout_id) do
+    with {:ok, %Req.Response{body: body}, client} <-
+           schedule_workout_req(client, workout_id, date) do
+      {:ok, normalize_schedule_body(body, workout_id, date), client}
+    end
+  end
+
+  @spec schedule_workout_req(Client.t(), integer(), Date.t()) ::
+          {:ok, Req.Response.t(), Client.t()} | {:error, Req.Response.t()}
+  def schedule_workout_req(client, workout_id, %Date{} = date)
+      when is_integer(workout_id) do
+    post(client,
+      url: "/workout-service/schedule/:workout_id",
+      path_params: [workout_id: workout_id],
+      json: %{"date" => Date.to_iso8601(date)}
+    )
+  end
+
+  @doc """
+  Lists scheduled calendar items for a year and 1-based month.
+  """
+  @spec scheduled_workouts(Client.t(), integer(), integer()) :: {:ok, map(), Client.t()} | error()
+  def scheduled_workouts(client, year, month)
+      when is_integer(year) and is_integer(month) and month in 1..12 do
+    with {:ok, %Req.Response{body: body}, client} <- scheduled_workouts_req(client, year, month),
+         true <- is_map(body) or is_list(body) do
+      {:ok, normalize_calendar_body(body), client}
+    else
+      {:ok, %Req.Response{body: body}, _client} -> {:error, {:invalid_response, body}}
+      false -> {:error, :invalid_response}
+      error -> error
+    end
+  end
+
+  @spec scheduled_workouts_req(Client.t(), integer(), integer()) ::
+          {:ok, Req.Response.t(), Client.t()} | {:error, Req.Response.t()}
+  def scheduled_workouts_req(client, year, month)
+      when is_integer(year) and is_integer(month) and month in 1..12 do
+    get(client,
+      url: "/calendar-service/year/:year/month/:month",
+      path_params: [year: year, month: month - 1]
+    )
+  end
+
   defp maybe_gc_api_path(path, opts) do
     if option_value(opts, [:gc_api, :gc_api?], false) do
       "/gc-api#{path}"
@@ -498,4 +568,17 @@ defmodule Nimrag do
 
   defp maybe_put_param(params, _key, nil), do: params
   defp maybe_put_param(params, key, value), do: Keyword.put(params, key, value)
+
+  defp normalize_schedule_body(body, workout_id, date) when is_map(body) do
+    body
+    |> Map.put_new("workoutId", workout_id)
+    |> Map.put_new("date", Date.to_iso8601(date))
+  end
+
+  defp normalize_schedule_body(_body, workout_id, date) do
+    %{"workoutId" => workout_id, "date" => Date.to_iso8601(date)}
+  end
+
+  defp normalize_calendar_body(body) when is_map(body), do: body
+  defp normalize_calendar_body(body) when is_list(body), do: %{"calendarItems" => body}
 end

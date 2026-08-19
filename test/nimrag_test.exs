@@ -191,4 +191,49 @@ defmodule NimragTest do
 
     assert {:error, %Req.Response{status: 404}} = Nimrag.training_status(client(), ~D[2024-05-01])
   end
+
+  test "#upload_workout" do
+    Req.Test.stub(Nimrag.Api, fn conn ->
+      assert conn.method == "POST"
+      Req.Test.json(conn, %{"workoutId" => 1_560_092_011, "workoutName" => "Easy Run"})
+    end)
+
+    assert {:ok, %{"workoutId" => 1_560_092_011, "workoutName" => "Easy Run"}, _client} =
+             Nimrag.upload_workout(client(), %{"workoutName" => "Easy Run"})
+  end
+
+  test "#upload_workout returns error tuple on non-success response" do
+    Req.Test.stub(Nimrag.Api, fn conn ->
+      conn
+      |> Plug.Conn.put_status(400)
+      |> Req.Test.json(%{"error" => "invalid workout"})
+    end)
+
+    assert {:error, %Req.Response{status: 400}} =
+             Nimrag.upload_workout(client(), %{"workoutName" => "Bad"})
+  end
+
+  test "#schedule_workout" do
+    Req.Test.stub(Nimrag.Api, fn conn ->
+      assert conn.method == "POST"
+      Req.Test.json(conn, %{"workoutScheduleId" => 99})
+    end)
+
+    assert {:ok, payload, _client} =
+             Nimrag.schedule_workout(client(), 1_560_092_011, ~D[2026-08-19])
+
+    assert payload["workoutScheduleId"] == 99
+    assert payload["workoutId"] == 1_560_092_011
+    assert payload["date"] == "2026-08-19"
+  end
+
+  test "#scheduled_workouts uses a 0-based month in the path" do
+    Req.Test.stub(Nimrag.Api, fn conn ->
+      assert conn.request_path == "/calendar-service/year/2026/month/7"
+      Req.Test.json(conn, %{"calendarItems" => []})
+    end)
+
+    assert {:ok, %{"calendarItems" => []}, _client} =
+             Nimrag.scheduled_workouts(client(), 2026, 8)
+  end
 end

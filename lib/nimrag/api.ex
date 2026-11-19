@@ -35,6 +35,15 @@ defmodule Nimrag.Api do
     |> decode_response([200, 201])
   end
 
+  @spec delete(Client.t(), Keyword.t()) ::
+          {:ok, Req.Response.t(), Client.t()} | {:error, Req.Response.t()}
+  def delete(%Client{} = client, opts) do
+    client
+    |> req(opts)
+    |> Req.delete()
+    |> decode_response([200, 204])
+  end
+
   @spec response_as_data({:ok, Req.Response.t(), Client.t()}, data_module :: atom()) ::
           {:ok, any(), Client.t()} | {:error, Req.Response.t()}
   @spec response_as_data({:error, any()}, data_module :: atom()) :: {:error, any()}

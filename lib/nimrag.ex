@@ -1,7 +1,7 @@
 defmodule Nimrag do
   alias Nimrag.Api
   alias Nimrag.Client
-  import Nimrag.Api, only: [get: 2, post: 2, response_as_data: 2]
+  import Nimrag.Api, only: [get: 2, post: 2, delete: 2, response_as_data: 2]
 
   @type error() :: {:error, any}
 
@@ -476,6 +476,47 @@ defmodule Nimrag do
       path_params: [workout_id: workout_id],
       json: %{"date" => Date.to_iso8601(date)}
     )
+  end
+
+  @doc """
+  Removes a scheduled workout from the calendar by its schedule id (the `id`
+  of a `"workout"` calendar item). The workout stays in the library.
+  """
+  @spec unschedule_workout(Client.t(), integer()) :: {:ok, Client.t()} | error()
+  def unschedule_workout(client, schedule_id) when is_integer(schedule_id) do
+    with {:ok, %Req.Response{}, client} <- unschedule_workout_req(client, schedule_id) do
+      {:ok, client}
+    end
+  end
+
+  @spec unschedule_workout_req(Client.t(), integer()) ::
+          {:ok, Req.Response.t(), Client.t()} | {:error, Req.Response.t()}
+  def unschedule_workout_req(client, schedule_id) when is_integer(schedule_id) do
+    delete(client,
+      url: "/workout-service/schedule/:schedule_id",
+      path_params: [schedule_id: schedule_id]
+    )
+  end
+
+  @doc """
+  Gets a workout of the library with its steps (`workoutSegments`).
+  """
+  @spec workout(Client.t(), integer()) :: {:ok, map(), Client.t()} | error()
+  def workout(client, workout_id) when is_integer(workout_id) do
+    with {:ok, %Req.Response{body: body}, client} <- workout_req(client, workout_id),
+         true <- is_map(body) do
+      {:ok, body, client}
+    else
+      {:ok, %Req.Response{body: body}, _client} -> {:error, {:invalid_response, body}}
+      false -> {:error, :invalid_response}
+      error -> error
+    end
+  end
+
+  @spec workout_req(Client.t(), integer()) ::
+          {:ok, Req.Response.t(), Client.t()} | {:error, Req.Response.t()}
+  def workout_req(client, workout_id) when is_integer(workout_id) do
+    get(client, url: "/workout-service/workout/:workout_id", path_params: [workout_id: workout_id])
   end
 
   @doc """
